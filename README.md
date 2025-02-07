@@ -1,4 +1,5 @@
-# Context Protocol : L1 Blockchain for the AI Agentic Economy
+# Context Protocol
+### L1 Blockchain for the AI Agentic Economy
 The Internet is Becoming AI—It Needs a Secure, High-Throughput Foundation for Verified Data and Autonomous AI Interactions
 
 ## Overview
