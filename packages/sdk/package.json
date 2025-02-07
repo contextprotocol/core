@@ -1,10 +1,22 @@
 {
-  "name": "context-protocol/sdk",
+  "name": "@ctxai/sdk",
+  "version": "0.1.0",
   "module": "dtst/index.js",
   "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "test": "jest"
+  "description": "Context Protocol SDK for decentralized RAG systems",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/contextprotocol/core.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

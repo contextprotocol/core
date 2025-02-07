@@ -5,7 +5,7 @@
       "name": "context-protocol",
     },
     "packages/contracts": {
-      "name": "@context-protocol/contracts",
+      "name": "@ctxai/contracts",
       "version": "0.1.0",
       "devDependencies": {
         "@nomicfoundation/hardhat-toolbox": "^5.0.0",
@@ -21,7 +21,8 @@
       },
     },
     "packages/sdk": {
-      "name": "context-protocol/sdk",
+      "name": "@ctxai/sdk",
+      "version": "0.1.0",
       "dependencies": {
         "@typescript-eslint/eslint-plugin": "^8.23.0",
         "@typescript-eslint/parser": "^8.23.0",
@@ -41,13 +42,32 @@
         "typescript": "^5.0.0",
       },
     },
+    "packages/utils": {
+      "name": "@ctxai/utils",
+      "version": "0.1.0",
+      "dependencies": {
+        "chalk": "^5.4.1",
+        "dotenv": "^16.4.7",
+        "ethers": "^6.13.5",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5.0.0",
+      },
+    },
   },
   "packages": {
     "@adraffy/ens-normalize": ["@adraffy/ens-normalize@1.10.1", "", {}, "sha512-96Z2IP3mYmF1Xg2cDm8f1gWGf/HUVedQ3FMifV4kG/PQ4yEP51xDtRAEfhVNt5f/uzpNkZHwWQuUcu6D6K+Ekw=="],
 
-    "@context-protocol/contracts": ["@context-protocol/contracts@workspace:packages/contracts"],
-
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
+
+    "@ctxai/contracts": ["@ctxai/contracts@workspace:packages/contracts"],
+
+    "@ctxai/sdk": ["@ctxai/sdk@workspace:packages/sdk"],
+
+    "@ctxai/utils": ["@ctxai/utils@workspace:packages/utils"],
 
     "@eslint-community/eslint-utils": ["@eslint-community/eslint-utils@4.4.1", "", { "dependencies": { "eslint-visitor-keys": "^3.4.3" }, "peerDependencies": { "eslint": "^6.0.0 || ^7.0.0 || >=8.0.0" } }, "sha512-s3O3waFUrMV8P/XaF/+ZTp1X9XBZW1a4B97ZnjQF2KYWaFD2A8KyFBsrsfSjEmjn3RGWAIuvlneuZm3CUK3jbA=="],
 
@@ -462,8 +482,6 @@
     "concat-map": ["concat-map@0.0.1", "", {}, "sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg=="],
 
     "concat-stream": ["concat-stream@1.6.2", "", { "dependencies": { "buffer-from": "^1.0.0", "inherits": "^2.0.3", "readable-stream": "^2.2.2", "typedarray": "^0.0.6" } }, "sha512-27HBghJxjiZtIk3Ycvn/4kbJk/1uZuJFfuPEns6LaEvpvG1f0hTea8lilrouyo9mVc2GWdcEZ8OLoGmSADlrCw=="],
-
-    "context-protocol/sdk": ["context-protocol/sdk@workspace:packages/sdk"],
 
     "cookie": ["cookie@0.4.2", "", {}, "sha512-aSWTXFzaKWkvHO1Ny/s+ePFpvKsPnjc551iI41v3ny/ow6tBG5Vd+FuqGNhh1LxOmVzOlGUriIlOaokOvhaStA=="],
 

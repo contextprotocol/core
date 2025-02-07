@@ -1,5 +1,5 @@
 {
-  "name": "@context-protocol/contracts",
+  "name": "@ctxai/contracts",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,6 +8,11 @@
     "test-label": "hardhat test test/LabelRegistry.ts",
     "test-node": "hardhat test test/ContextNode.ts",
     "deploy": "hardhat deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/contextprotocol/core.git",
+    "directory": "packages/contracts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
