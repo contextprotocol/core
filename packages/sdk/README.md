@@ -1,77 +1,207 @@
-# Context Protocol : L1 Blockchain for the AI Agentic Economy
-The Internet is Becoming AI—It Needs a Secure, High-Throughput Foundation for Verified Data and Autonomous AI Interactions
+# Context Protocol SDK
 
-## Overview
-Context Protocol is based on a decentralized infrastructure for verifiable RAG (Retrieval-Augmented Generation) systems. It enables the creation of trusted, interconnected knowledge domains where data can be verified, traced, and securely shared between AI agents.
+TypeScript SDK for interacting with Context Protocol's decentralized RAG infrastructure.
 
-Think of Context Protocol as a decentralized knowledge graph where:
-- Each node is a smart contract containing verified documents and data
-- Nodes are connected through cryptographically secured edges (relations)
-- Documents in nodes form the basis for RAG systems
-- Relations between nodes allow RAGs to expand their knowledge domain by accessing verified data from connected nodes
+## Installation
 
-### Key Components
-
-#### Label Registry
-A smart contract that defines and manages the types of nodes and their relationships. It acts as a schema registry ensuring data integrity and relationship validity across the network.
-
-#### Context Nodes
-Smart contracts that represent knowledge domains. Each node can:
-- Store and manage documents for RAG systems
-- Maintain verified properties
-- Create validated connections with other nodes
-- Control access to its knowledge domain
-
-#### Verified Relations
-Cryptographically secured connections between nodes that:
-- Enable trusted knowledge sharing between RAGs
-- Maintain data provenance
-- Allow controlled access to connected knowledge domains
-
-## Architecture
-
-![Context Protocol](./assets/images/schema.png)
-
-## Repository Structure
-
+```bash
+npm install @contextprotocol/sdk
 ```
-packages/
-├── contracts/       # Smart contracts for nodes and registry
-├── sdk/            # TypeScript SDK for interaction
-└── utils/          # Shared utilities and helpers
-```
-
-## Documentation
-
-- [Smart Contracts](./packages/contracts/README.md) - Core contracts documentation
-- [SDK](./packages/sdk/README.md) - SDK usage and integration guides
-- [Utils](./packages/utils/README.md) - Utility functions and helpers
 
 ## Quick Start
 
 ```typescript
-// Create a knowledge domain node
+import { LabelRegistry, ContextNode } from '@contextprotocol/sdk';
+import { PropertyType } from '@contextprotocol/utils';
+
+// Deploy registry and create schema
+const registry = new LabelRegistry({ debug: true });
+await registry.deploy();
+
+// Create a label type
+await registry.label('Organization')
+  .property('name', PropertyType.STRING)
+  .property('founded', PropertyType.NUMBER)
+  .save();
+
+// Create a node instance
 const node = new ContextNode({ debug: true });
-
-// Add documents for RAG
-await node.addDocument('ipfs://QmDocument1');
-await node.addDocument('ipfs://QmDocument2');
-
-// Create verified relation with another node
-await node.edge('RELATED_TO', 'semantic-connection')
-  .to(otherNodeAddress)
+await node.node('Organization')
+  .property('name', 'Context')
+  .property('founded', 2023)
   .save();
 ```
 
-## Use Cases
+## Core Components
 
-1. **Verified Training Data**
-   - Create trusted data sources for AI training
-   - Maintain data provenance and authenticity
+### LabelRegistry
 
-2. **Interconnected Knowledge Domains**
-   - Build networks of specialized knowledge
-   - Share verified information between domains
+The `LabelRegistry` class manages the schema and rules for your knowledge graph.
 
-3. **AI Agent Collaboration**
-   - Enable secure knowledge sharing betwee
+```typescript
+const registry = new LabelRegistry({
+  connection: 'testnet',     // Network connection
+  privateKey: 'your_key',    // Optional: Wallet private key
+  registryAddress: 'addr',   // Optional: Existing registry address
+  debug: true               // Optional: Enable debug logging
+});
+```
+
+#### Creating Labels
+
+Labels define node types with their properties:
+
+```typescript
+// Builder pattern for creating labels
+await registry.label('Person')
+  .property('name', PropertyType.STRING)
+  .property('age', PropertyType.NUMBER)
+  .property('birthDate', PropertyType.DATE)
+  .property('startTime', PropertyType.TIME)
+  .property('isActive', PropertyType.BOOLEAN)
+  .save();
+```
+
+#### Defining Relations
+
+Define valid relationships between labels:
+
+```typescript
+await registry.edge('WORKS_AT', 'Person', 'Organization')
+  .property('role', PropertyType.STRING)
+  .property('startDate', PropertyType.DATE)
+  .save();
+```
+
+### ContextNode
+
+The `ContextNode` class represents a node in your knowledge graph. It manages properties, documents, and relationships.
+
+```typescript
+const node = new ContextNode({
+  connection: 'testnet',      // Network connection
+  privateKey: 'your_key',     // Optional: Wallet private key
+  nodeAddress: 'addr',        // Optional: Existing node address
+  registryAddress: 'addr',    // Label registry address
+  debug: true                // Optional: Enable debug logging
+});
+```
+
+#### Managing Properties
+
+Add and update node properties:
+
+```typescript
+await node.node('Organization')
+  .property('name', 'Context Protocol')
+  .property('founded', 2023)
+  .property('isActive', true)
+  .save();
+
+// Get property value
+const name = await node.getProperty('name');
+```
+
+#### Managing Documents
+
+Add and manage documents for RAG:
+
+```typescript
+// Add documents individually
+await node.addDocument('ipfs://QmDocument1');
+
+// Add multiple documents during node creation
+await node.node('Organization')
+  .property('name', 'Context')
+  .document('ipfs://QmDocument1')
+  .document('ipfs://QmDocument2')
+  .save();
+
+// Remove document
+await node.removeDocument('ipfs://QmDocument1');
+
+// Get all documents
+const docs = await node.getDocuments();
+```
+
+#### Managing Relations
+
+Create and manage relationships with other nodes:
+
+```typescript
+// Create relation using builder pattern
+await node.edge('WORKS_AT', 'employee')
+  .to(otherNodeAddress)
+  .property('role', 'Engineer')
+  .property('startDate', new Date('2023-01-01'))
+  .save();
+
+// Get edge information
+const edge = await node.getEdge('WORKS_AT', otherNodeAddress, 'employee');
+```
+
+## Debug Mode
+
+Enable debug mode for detailed logging:
+
+```typescript
+const registry = new LabelRegistry({ debug: true });
+const node = new ContextNode({ debug: true });
+```
+
+Debug output includes:
+- Contract deployment status
+- Transaction confirmations
+- Property updates
+- Document management
+- Relationship changes
+
+## Error Handling
+
+The SDK uses a custom error system:
+
+```typescript
+try {
+  await node.addDocument('invalid-url');
+} catch (error) {
+  if (error.message.includes('InvalidURL')) {
+    // Handle invalid URL error
+  }
+}
+```
+
+Common error types:
+- `InvalidURL`: Invalid document URL
+- `DocumentAlreadyExists`: Duplicate document
+- `InvalidPropertyType`: Wrong property type
+- `InvalidRelation`: Invalid relationship
+- `UnauthorizedAccess`: Permission denied
+
+## TypeScript Support
+
+The SDK is written in TypeScript and provides full type definitions:
+
+```typescript
+import { 
+  LabelRegistry, 
+  ContextNode,
+  ContextNodeConfig,
+  LabelRegistryConfig,
+  PropertyType,
+  EdgeStatus
+} from '@contextprotocol/sdk';
+```
+
+## Environment Variables
+
+The SDK uses these environment variables:
+
+```env
+PRIVATE_KEY=your_wallet_private_key
+REGISTRY_ADDRESS=deployed_registry_address
+NODE_ADDRESS=deployed_node_address
+```
+
+## License
+
+MIT
