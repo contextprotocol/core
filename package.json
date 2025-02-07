@@ -1,0 +1,16 @@
+{
+  "name": "context-protocol",
+  "private": true,
+  "version": "1.0.0",
+    "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": ""
+}

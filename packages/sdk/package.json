@@ -1,0 +1,27 @@
+{
+  "name": "context-protocol/sdk",
+  "module": "dtst/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@stylistic/eslint-plugin": "^3.0.1",
+    "@types/bun": "latest",
+    "@types/eslint__js": "^8.42.3",
+    "typescript-eslint": "^8.23.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.23.0",
+    "@typescript-eslint/parser": "^8.23.0",
+    "chalk": "^5.4.1",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.19.0",
+    "ethers": "^6.13.5"
+  }
+}
