@@ -1,6 +1,6 @@
-import { PropertyType } from "../../utils/src/property";
+import { PropertyType } from "../../shared/src/property";
 
-export interface LabelProperty {
+export interface NodeTypeProperty {
     name: string;
     type: PropertyType;
 }
@@ -24,22 +24,22 @@ export const RPC_URLS: Record<NetworkConnection, string> = {
 
 
 
-export interface LabelRegistryConfig {
+export interface NodeTypeRegistryConfig {
     privateKey?: string;              // Optional private key. You can use connect later
     connection?: NetworkConnection;   // Optional network connection. Default devnet
-    registryAddress?: string;         // Optional contract address if already deployed
+    nodeTypeRegistryAddress?: string;         // Optional contract address if already deployed
     debug?: boolean;                  // Optional debug flag
 }
 
-export interface ContextNodeConfig {
+export interface GraphNodeConfig {
     privateKey?: string;             // Optional private key. You can use connect later
     connection?: NetworkConnection;  // Optional network connection. Default devnet
     nodeAddress?: string;            // Optional contract address if already deployed
-    registryAddress?: string;        // Optional label registry address
+    nodeTypeRegistryAddress?: string;        // Optional label registry address
     debug?: boolean;                  // Optional debug flag
 }
 
-export enum RelationStatus {
+export enum EdgeStatus {
     PENDING,
     DELETED,
     ACCEPTED,
@@ -52,11 +52,11 @@ export interface Document {
     isIndexed: boolean;
 }
   
-export interface Relation {
-    ragId: string;
-    relationType: string;
+export interface Edge {
+    nodeId: string;
+    edgeType: string;
     startTimestamp: number;
     endTimestamp: number;
-    status: RelationStatus;
+    status: EdgeStatus;
     notes: string;
 }

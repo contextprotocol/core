@@ -1,14 +1,14 @@
-import { ContextNode } from '../src/index';
-import { Logger } from '../../utils/src/logger';
+import { GraphNode } from '../src/index';
+import { Logger } from '../../shared/src/logger';
 
 // Usage Example:
 async function updateNode() {
     Logger.info('Setting up knowledge graph...');
 
-    const context = new ContextNode({ debug: true, nodeAddress: process.env.NODE_ADDRESS_ORGANIZATION });
-    const alex = new ContextNode({ debug: true, nodeAddress: process.env.NODE_ADDRESS_PERSONA });
+    const context = new GraphNode({ debug: true, nodeAddress: process.env.NODE_ADDRESS_ORGANIZATION });
+    const alex = new GraphNode({ debug: true, nodeAddress: process.env.NODE_ADDRESS_PERSONA });
 
-    await context.node('Organization')
+    /*await context.node('Organization')
         .property('name', 'Context')
         .property('founded', 2021)
         .property('employee', 10)
@@ -22,7 +22,7 @@ async function updateNode() {
         .document('https://example.com/doc1')
       .save();
  
-      await alex.addDocument('https://example.com/doc3');
+      await alex.addDocument('https://example.com/doc3');*/
 
       await context.edge('WORKS_AT', 'founder')
         .to(alex.nodeAddress as string)

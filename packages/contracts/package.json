@@ -1,18 +1,13 @@
 {
-  "name": "@ctxai/contracts",
+  "name": "@context-protocol/contracts",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
-    "test-label": "hardhat test test/LabelRegistry.ts",
-    "test-node": "hardhat test test/ContextNode.ts",
+    "test-nodeType": "hardhat test test/NodeTypeRegistry.ts",
+    "test-graphNode": "hardhat test test/GraphNode.ts",
     "deploy": "hardhat deploy"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/contextprotocol/core.git",
-    "directory": "packages/contracts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",

@@ -1,3 +1,3 @@
-export type { LabelProperty } from './types';
-export { LabelRegistry } from './labelRegistry';
-export { ContextNode } from './contextNode';
+export type { NodeTypeProperty, NodeProperty, Document, Edge, EdgeStatus } from './types';
+export { NodeTypeRegistry } from './nodeTypeRegistry';
+export { GraphNode } from './graphNode';

@@ -1,78 +1,33 @@
-# Context Protocol
-### L1 Blockchain for the AI Agentic Economy
-The Internet is Becoming AI—It Needs a Secure, High-Throughput Foundation for Verified Data and Autonomous AI Interactions
+# Context Protocol Documentation
 
-## Overview
-Context Protocol is based on a decentralized infrastructure for verifiable RAG (Retrieval-Augmented Generation) systems. It enables the creation of trusted, interconnected knowledge domains where data can be verified, traced, and securely shared between AI agents.
+Welcome to the Context Protocol documentation! This comprehensive guide will help you understand and implement the Context Protocol in your applications.
 
-Think of Context Protocol as a decentralized knowledge graph where:
-- Each node is a smart contract containing verified documents and data
-- Nodes are connected through cryptographically secured edges (relations)
-- Documents in nodes form the basis for RAG systems
-- Relations between nodes allow RAGs to expand their knowledge domain by accessing verified data from connected nodes
+## 🚀 Quick Navigation
 
-### Key Components
+- [Getting Started](getting-started/installation.md)
+- [Core Concepts](core-concepts/knowledge-graphs.md)
+- [SDK Reference](sdk-reference/label-registry.md)
+- [Tutorials](tutorials/company-directory.md)
+- [Best Practices](best-practices/security.md)
 
-#### Label Registry
-A smart contract that defines and manages the types of nodes and their relationships. It acts as a schema registry ensuring data integrity and relationship validity across the network.
+## 🔧 Installation
 
-#### Context Nodes
-Smart contracts that represent knowledge domains. Each node can:
-- Store and manage documents for RAG systems
-- Maintain verified properties
-- Create validated connections with other nodes
-- Control access to its knowledge domain
+\`\`\`bash
+npm install @context-protocol/label-registry
+\`\`\`
 
-#### Verified Relations
-Cryptographically secured connections between nodes that:
-- Enable trusted knowledge sharing between RAGs
-- Maintain data provenance
-- Allow controlled access to connected knowledge domains
+## 🌟 Features
 
-## Architecture
+- Knowledge Graph Management
+- RAG System Integration
+- Smart Contract Integration
+- TypeScript Support
+- Comprehensive Documentation
 
-![Context Protocol](./assets/images/schema.png)
+## 🤝 Contributing
 
-## Repository Structure
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-```
-packages/
-├── contracts/       # Smart contracts for nodes and registry
-├── sdk/            # TypeScript SDK for interaction
-└── utils/          # Shared utilities and helpers
-```
+## 📄 License
 
-## Documentation
-
-- [Smart Contracts](./packages/contracts/README.md) - Core contracts documentation
-- [SDK](./packages/sdk/README.md) - SDK usage and integration guides
-- [Utils](./packages/utils/README.md) - Utility functions and helpers
-
-## Quick Start
-
-```typescript
-// Create a knowledge domain node
-const node = new ContextNode({ debug: true });
-
-// Add documents for RAG
-await node.addDocument('ipfs://QmDocument1');
-await node.addDocument('ipfs://QmDocument2');
-
-// Create verified relation with another node
-await node.edge('RELATED_TO', 'semantic-connection')
-  .to(otherNodeAddress)
-  .save();
-```
-
-## Use Cases
-
-1. **Verified Training Data**
-   - Create trusted data sources for AI training
-   - Maintain data provenance and authenticity
-
-2. **Interconnected Knowledge Domains**
-   - Build networks of specialized knowledge
-   - Share verified information between domains
-
-3. **AI Agent Collaboration**
-   - Enable secure knowledge sharing betwee
+MIT License - see the [LICENSE](LICENSE) file for details.

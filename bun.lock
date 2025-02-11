@@ -5,7 +5,7 @@
       "name": "context-protocol",
     },
     "packages/contracts": {
-      "name": "@ctxai/contracts",
+      "name": "@context-protocol/contracts",
       "version": "0.1.0",
       "devDependencies": {
         "@nomicfoundation/hardhat-toolbox": "^5.0.0",
@@ -61,9 +61,9 @@
   "packages": {
     "@adraffy/ens-normalize": ["@adraffy/ens-normalize@1.10.1", "", {}, "sha512-96Z2IP3mYmF1Xg2cDm8f1gWGf/HUVedQ3FMifV4kG/PQ4yEP51xDtRAEfhVNt5f/uzpNkZHwWQuUcu6D6K+Ekw=="],
 
-    "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
+    "@context-protocol/contracts": ["@context-protocol/contracts@workspace:packages/contracts"],
 
-    "@ctxai/contracts": ["@ctxai/contracts@workspace:packages/contracts"],
+    "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
     "@ctxai/sdk": ["@ctxai/sdk@workspace:packages/sdk"],
 

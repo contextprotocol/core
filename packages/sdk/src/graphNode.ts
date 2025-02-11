@@ -1,22 +1,22 @@
 import { ethers } from 'ethers';
-import { Logger } from '../../utils/src/logger';
-import { LabelRegistry } from './labelRegistry';
-import { Property,  PropertyType, Document, Edge, EdgeStatus } from "../../utils/src";
-import { NodeProperty, ContextNodeConfig, RPC_URLS, NetworkConnection } from './types';
-import ContextNodeABI 
-    from '../../contracts/artifacts/contracts/ContextNode.sol/ContextNode.json';
+import { Logger } from '../../shared/src/logger';
+import { NodeTypeRegistry } from './nodeTypeRegistry';
+import { Property,  PropertyType, Document, Edge, EdgeStatus, NodeType } from "../../shared/src";
+import { NodeProperty, GraphNodeConfig, RPC_URLS, NetworkConnection } from './types';
+import GraphNodeABI 
+    from '../../contracts/artifacts/contracts/GraphNode.sol/GraphNode.json';
 import  dotenv from 'dotenv';
 dotenv.config();
 
 // Builder pattern for creating labels with fluent interface
 class NodeBuilder {
-    private parent: ContextNode;
+    private parent: GraphNode;
     private properties: NodeProperty[] = [];
     private documents: string[] = [];
-    private labelName: string = '';
+    private graphNodeName: string = '';
   
-    constructor(labelName: string, parent: ContextNode) {
-        this.labelName = labelName;
+    constructor(graphNodeName: string, parent: GraphNode) {
+        this.graphNodeName = graphNodeName;
         this.parent = parent;
     }
   
@@ -32,8 +32,8 @@ class NodeBuilder {
     }
 
     async save() {
-      if (this.parent.debug) Logger.info(`Saving Node with Label ${this.labelName}`, { prefix: 'Node' });
-      const { nodeId, properties } = await this.parent.addNode(this.labelName);
+      if (this.parent.debug) Logger.info(`Saving GraphNode with NodeType ${this.graphNodeName}`, { prefix: 'Node' });
+      const { nodeId, properties } = await this.parent.addNode(this.graphNodeName);
 
         // Save properties
         for( const property of this.properties) {
@@ -51,7 +51,7 @@ class NodeBuilder {
         }
     
     return {
-        name: this.labelName,
+        name: this.graphNodeName,
         properties: this.properties
       };
     }
@@ -59,13 +59,13 @@ class NodeBuilder {
 
   // EdgeBuilder class
 class EdgeBuilder {
-    private parent: ContextNode;
+    private parent: GraphNode;
     private properties: NodeProperty[] = [];
     private edgeName: string;
     private descriptor: string;
     private toNodeAddress?: string;
   
-    constructor(edgeName: string, descriptor: string, parent: ContextNode) {
+    constructor(edgeName: string, descriptor: string, parent: GraphNode) {
         this.edgeName = edgeName;
         this.descriptor = descriptor;
         this.parent = parent;
@@ -93,11 +93,11 @@ class EdgeBuilder {
         for (const property of this.properties) {
             await this.parent.setEdgeProperty(
                 edgeId,
+                this.edgeName,
                 property.key,
                 property.value
             );
         }
-
         return {
             type: this.edgeName,
             descriptor: this.descriptor,
@@ -107,22 +107,22 @@ class EdgeBuilder {
     }
 }
 
-// ContextNode class
-export class ContextNode {
+// GraphNode class
+export class GraphNode {
     private provider: ethers.Provider;
     private wallet?: ethers.Signer;
     public contract?: ethers.Contract;
     public nodeAddress?: string;
-    public labelRegistry?: LabelRegistry;
+    public nodeTypeRegistry?: NodeTypeRegistry;
     public labelId?: string;
-    public labelName?: string;
+    public graphNodeName?: string;
     public debug: boolean = false;
 
     /**
      * Creates an instance of ContextNde.
      * 
-     * @param {ContextNodeConfig} config
-     * The configuration object for the ContextNode.
+     * @param {GraphNodeConfig} config
+     * The configuration object for the GraphNode.
      * @param {NetworkConnection} [config.connection='testnet']
      * The network connection to use (e.g., 'mainnet', 'testnet').
      * @param {string} [config.privateKey]
@@ -132,7 +132,7 @@ export class ContextNode {
      * The address of the contract. If provided, the contract will be initialized.
      * @throws {Error} If the wallet is not initialized and a registry address is provided.
      */
-    constructor(config: ContextNodeConfig) {
+    constructor(config: GraphNodeConfig) {
         const connection: NetworkConnection = config.connection ?? 'testnet';
         const rpcUrl: string = RPC_URLS[connection];
         this.provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -150,14 +150,14 @@ export class ContextNode {
             this.checkWallet();
             this.contract = new ethers.Contract(
                 nodeAddress,
-                ContextNodeABI.abi,
+                GraphNodeABI.abi,
                 this.wallet);
             this.nodeAddress = config.nodeAddress;
         }
 
-        const registryAddress = config.registryAddress ?? process.env.REGISTRY_ADDRESS;
+        const registryAddress = config.nodeTypeRegistryAddress ?? process.env.NODE_TYPE_REGISTRY_ADDRESS;
         if (registryAddress) {
-            this.labelRegistry = new LabelRegistry({ registryAddress: registryAddress, debug: this.debug });
+            this.nodeTypeRegistry = new NodeTypeRegistry({ nodeTypeRegistryAddress: registryAddress, debug: this.debug });
         }
     }
 
@@ -221,22 +221,28 @@ export class ContextNode {
 
     // Check registry.
     async checkRegistry(): Promise<void> {
-        if (!this.labelRegistry) {
-            this.error('Label Registry not initialized', 'Registry');
+        if (!this.nodeTypeRegistry) {
+            console.log("Creating GraphNode -> checkRegistry -> error");
+            this.error({msg: 'Label Registry not initialized'}, 'Registry');
         }
     }
 
-    async addNode(labelName: string): Promise<{nodeId: string , properties: any[]}> {
+    async addNode(graphNodeName: string): Promise<{nodeId: string , properties: any[]}> {
+        console.log("Creating GraphNode -> checkWallet");
         this.checkWallet();
+        console.log("Creating GraphNode -> checkRegistry");
         this.checkRegistry();
-        this.labelName = labelName;
+        
+        this.graphNodeName = graphNodeName;
+        console.log("Creating GraphNode -> ", graphNodeName);
         if (!this.contract) {
-            const label = await this.labelRegistry?.getLabel(labelName);
+            console.log("Creating GraphNode -> deploy");
+            const label = await this.nodeTypeRegistry?.getNodeType(graphNodeName);
             this.labelId = label?.labelId as string;
             this.nodeAddress = await this.deploy(label?.labelId as string);
         } else {
             
-            const label = await this.labelRegistry?.getLabel(this.labelName?? '');
+            const label = await this.nodeTypeRegistry?.getNodeType(this.graphNodeName?? '');
             this.labelId = label?.labelId as string;
             return { nodeId: this.nodeAddress as string, properties: [] };
         }
@@ -244,34 +250,38 @@ export class ContextNode {
         return {nodeId: this.nodeAddress, properties: []};
     }
 
-    async getEdge(edgeName: string, toNodeAddress: string, decorator: string): Promise<{edgeId: string, relationId: string, edgeExists: boolean}> { 
+    async getEdge(edgeName: string, toNodeAddress: string, decorator: string): Promise<{edgeId: string, edgeTypeId: string, edgeExists: boolean}> { 
         this.checkContract();
-        const relation = await this.labelRegistry?.getEdge(edgeName);
-        const relationId = relation?.edgeId || '0x';
-        if (relation?.exists === false) return { edgeId: "0x", relationId, edgeExists: false };
-        const edgeId = Edge.generateId(relation?.edgeId as string, toNodeAddress, decorator);
+        const address = this.nodeTypeRegistry?.nodeTypeRegistryAddress as string;
+        const edgeTypeId = NodeType.generateId(address, edgeName);
+        const edgeType = await this.nodeTypeRegistry?.getEdgeById(edgeTypeId);
+        if (edgeType?.exists === false) return { edgeId: "0x", edgeTypeId, edgeExists: false };
+        const edgeId = Edge.generateId(edgeType?.edgeId as string, toNodeAddress, decorator);
         if (this.debug) Logger.warn(`Verify toNodeAddress is a valid relation`, { prefix: 'TODO' });
         try {
             const edge = await this.contract?.getEdge(edgeId);
             const status = Number(edge[3]);
             const edgeExists = status !== EdgeStatus.INVALID;
-            return { edgeId, relationId, edgeExists };
+            return { edgeId, edgeTypeId, edgeExists };
         } catch (error) {
-            return { edgeId, relationId, edgeExists: false };
+            return { edgeId, edgeTypeId, edgeExists: false };
         }
     }
 
     async addEdge(edgeName: string, toNodeAddress: string, descriptor: string): Promise<string> {
         this.checkContract();
-        const {edgeId, relationId, edgeExists} = await this.getEdge(edgeName, toNodeAddress, descriptor);
+        this.checkRegistry();
+        const {edgeId, edgeTypeId, edgeExists} = await this.getEdge(edgeName, toNodeAddress, descriptor);
         if (edgeExists) {
             if (this.debug) Logger.result('Edge already exists', edgeName, { prefix: 'Edge' });
             return edgeId;
         } else {
             try {
                 if (this.debug) Logger.warn(`Verify toNodeAddress is Set`, { prefix: 'TODO' });
+                console.log("Creating GraphNode -> addEdge -> toNodeAddress", toNodeAddress);   
                 if (this.debug) Logger.loading(`Adding edge to ${toNodeAddress}`, { prefix: 'Edge' });
-                const tx = await this.contract?.addEdge(relationId, toNodeAddress, descriptor);
+                console.log("Creating GraphNode -> addEdge ", edgeTypeId, descriptor);
+                const tx = await this.contract?.addEdge(edgeTypeId, toNodeAddress, descriptor);
                 await tx.wait();
                 if (this.debug) Logger.success(`Edge added successfully`, { prefix: 'Edge' });
                 return edgeId;
@@ -283,32 +293,39 @@ export class ContextNode {
 
     }
 
-    async changeEdgeStatus(edgeId: string, key: string, value: any) {
+    async setEdgeProperty(edgeId: string, edgeName: string, key: string, value: any) {
         this.checkContract();
-        Logger.warn(`TODO: Change Edge Status`, { prefix: 'TODO' });
-        /*
+        this.checkRegistry();
+        // Get edge details from registry
+        this.checkContract();
+
+        const [edgeTypeId, nodeId, ] = await this.contract?.getEdge(edgeId);
+        console.log(edgeTypeId);
+        const edgeType = await this.nodeTypeRegistry?.getEdgeById(edgeTypeId);
+        console.log(edgeType);
+        if (!edgeType?.properties.includes(key)) {
+            this.error({msg: `Property ${key} not found for edge ${edgeId}`}, 'Edge');
+        }
+        const propertyId = Property.generateId(edgeTypeId, key);
+        const propertyType = await this.nodeTypeRegistry?.getNodeTypeProperty(edgeTypeId, propertyId) as number;
+        // console.log(propertyType);
+
+/*        if (!edge || !edge.exists) {
+            throw new Error(`Edge ${edgeId} not found in registry`);
+        }
+
+        // Get property details from registry
         const propertyId = Property.generateId(edgeId, key);
-        const bytesValue = Property.encodeValue(PropertyType.NUMBER, value);
+        const propertyType = await this.nodeTypeRegistry?.getEdgeProperty(edgeId, propertyId);
+        if (!propertyType) {
+            throw new Error(`Property ${key} not found for edge ${edgeId}`);
+        }
+
+        // Encode the value using the correct property type
+        const bytesValue = Property.encodeValue(propertyType, value);
 
         try {
-            console.log(propertyId, bytesValue);
-            if (this.debug) Logger.loading(`Setting property ${key} of type ${PropertyType[PropertyType.NUMBER]}`, { prefix: 'Edge' });
-            // const tx = await this.contract?.setProperty(propertyId, bytesValue);
-        } catch (error: any) {
-            this.error({ msg: `Failed to set edge property ${error.message || ""}`}, 'Edge');
-        }*/
-    }
-
-    async setEdgeProperty(edgeId: string, key: string, value: any) {
-        this.checkContract();
-        Logger.warn(`TODO: Verify edgeId is a valid edge`, { prefix: 'TODO' });
-        /*
-        const propertyId = Property.generateId(edgeId, key);
-        const bytesValue = Property.encodeValue(PropertyType.NUMBER, value);
-
-        try {
-            console.log(propertyId, bytesValue);
-            if (this.debug) Logger.loading(`Setting property ${key} of type ${PropertyType[PropertyType.NUMBER]}`, { prefix: 'Edge' });
+            if (this.debug) Logger.loading(`Setting property ${key} of type ${PropertyType[propertyType]}`, { prefix: 'Edge' });
             // const tx = await this.contract?.setProperty(propertyId, bytesValue);
         } catch (error: any) {
             this.error({ msg: `Failed to set edge property ${error.message || ""}`}, 'Edge');
@@ -316,19 +333,19 @@ export class ContextNode {
     }
 
     /**
-     * Deploys the LabelRegistry contract if it is not already deployed.
+     * Deploys the NodeTypeRegistry contract if it is not already deployed.
      * 
      * @returns {Promise<string>} The address of the deployed contract.
      * @throws {Error} If the wallet is not initialized.
      */
     private async deploy(labelId: string): Promise<string> {
         const factory = new ethers.ContractFactory(
-            ContextNodeABI.abi, ContextNodeABI.bytecode, this.wallet
+            GraphNodeABI.abi, GraphNodeABI.bytecode, this.wallet
         );
         if (this.debug) Logger.loading('Deploying node...', { prefix: 'Node' });
-        const registreyAddress = this.labelRegistry?.registryAddress as string;
+        const nodeTypeRegistryAddress = this.nodeTypeRegistry?.nodeTypeRegistryAddress as string;
         try {
-            const contract = await factory.deploy(labelId, registreyAddress);
+            const contract = await factory.deploy(labelId, nodeTypeRegistryAddress);
             await contract.waitForDeployment();
         
             this.nodeAddress = await contract.getAddress();
@@ -338,7 +355,7 @@ export class ContextNode {
             }
                 this.contract = new ethers.Contract(
                 this.nodeAddress,
-                ContextNodeABI.abi,
+                GraphNodeABI.abi,
                 this.wallet
             );
         } catch (e) {
@@ -349,11 +366,11 @@ export class ContextNode {
 
     async addProperty(key: string, value: any) {   
        const labelId: string = this.labelId as string;
-        if (!labelId || !this.labelName) this.error('Label not initialized', 'Node');
+        if (!labelId || !this.graphNodeName) this.error({msg: 'NodeType not initialized'}, 'Node');
 
         // Get property information from registry
-        const label = await this.labelRegistry?.getLabel(this.labelName as string);
-        if (!label || !label.exists) this.error('Label not found', 'Node');
+        const label = await this.nodeTypeRegistry?.getNodeType(this.graphNodeName as string);
+        if (!label || !label.exists) this.error({msg: 'NodeType not found'}, 'Node');
     
         // Actual value
         const actualValue:any = await this.getProperty(key);
@@ -364,7 +381,7 @@ export class ContextNode {
 
         // Get Value.
         const propertyId = Property.generateId(labelId, key);
-        const propertyType: PropertyType = await this.labelRegistry?.getLabelProperty(labelId, propertyId) as number;
+        const propertyType: PropertyType = await this.nodeTypeRegistry?.getNodeTypeProperty(labelId, propertyId) as number;
         const bytesValue: Uint8Array = Property.encodeValue(propertyType, value);
 
         // Set the property in the contract
@@ -383,7 +400,7 @@ export class ContextNode {
 
 
     async getProperty(propertyName: string): Promise<any> {
-        if (!this.labelId || !this.labelName) {
+        if (!this.labelId || !this.graphNodeName) {
             throw new Error('Label not initialized');
         }
 
@@ -405,7 +422,7 @@ export class ContextNode {
         this.checkContract();
         
         if (!url || url.trim() === '') {
-            this.error('Invalid URL', 'Document');
+            this.error({msg: 'Invalid URL'}, 'Document');
         }
 
         try {
@@ -432,7 +449,7 @@ export class ContextNode {
             
             if (this.debug) Logger.success(`Document removed successfully`, { prefix: 'Document' });
         } catch (error: any) {
-            this.error(`Failed to remove document: ${error.message}`, 'Document');
+            this.error({msg: `Failed to remove document: ${error.message}`}, 'Document');
             throw error;
         }
     }

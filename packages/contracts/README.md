@@ -1,184 +1,137 @@
-# @contextprotocol/contracts
+# Context Protocol Smart Contracts
 
-Smart contracts for Context Protocol's decentralized verifiable RAG system.
+This package contains the core smart contracts for the Context Protocol, implementing a flexible and extensible system for managing labeled nodes, their properties, documents, and relationships.
 
 ## Overview
 
-This package contains the core smart contracts that power Context Protocol:
+The Context Protocol consists of two main contracts:
 
-- `LabelRegistry.sol`: Registry contract that defines and validates node types and their relationships
-- `ContextNode.sol`: Node contract that manages documents and verified relations for RAG systems
+1. **LabelRegistry**: Manages the schema and validation rules for the protocol
+   - Label definitions and their properties
+   - Edge type definitions and configurations
+   - Property type validation
+   - Edge path validation
 
-## Installation
+2. **ContextNode**: Implements a node instance with the following features:
+   - Property management
+   - Document management
+   - Edge (relationship) management
+   - Access control
 
-```bash
-npm install @contextprotocol/contracts
-```
-
-## Local Development
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Compile contracts:
-```bash
-npx hardhat compile
-```
-
-3. Run tests:
-```bash
-npx hardhat test
-```
-
-4. Run tests with coverage:
-```bash
-npx hardhat coverage
-```
-
-## Contract Deployment
-
-### 1. Set Up Environment
-
-Create a `.env` file:
-```env
-PRIVATE_KEY=your_wallet_private_key
-INFURA_KEY=your_infura_key
-ETHERSCAN_API_KEY=your_etherscan_key
-```
-
-### 2. Deploy Label Registry
-
-```bash
-npx hardhat run scripts/deploy-registry.ts --network <network>
-```
-
-### 3. Deploy Context Node
-
-```bash
-npx hardhat run scripts/deploy-node.ts --network <network>
-```
-
-### Supported Networks
-
-- `localhost` - Local development
-- `goerli` - Ethereum Goerli testnet
-- `mainnet` - Ethereum mainnet
-
-## Contract Verification
-
-Verify contracts on Etherscan:
-
-```bash
-npx hardhat verify --network <network> <contract_address> <constructor_args>
-```
-
-Example:
-```bash
-# Verify LabelRegistry
-npx hardhat verify --network goerli <registry_address>
-
-# Verify ContextNode
-npx hardhat verify --network goerli <node_address> "labelId" "registryAddress"
-```
-
-## Contract Documentation
+## Contract Architecture
 
 ### LabelRegistry
 
-The `LabelRegistry` contract manages label types and their relationships. It defines:
+The Label Registry serves as the schema manager for the entire protocol. It defines:
 
-- Label types with properties
-- Valid relationship types between labels
-- Property type validation (STRING, NUMBER, DATE, etc.)
-
-Example:
-```solidity
-interface ILabelRegistry {
-    function addLabel(string calldata name) external;
-    function addLabelProperty(bytes32 labelId, string calldata name, PropertyType propertyType) external;
-    function addEdge(string calldata name, bytes32 fromLabelId, bytes32 toLabelId) external;
-}
-```
+- **Labels**: Node types with defined property sets
+- **Edge Types**: Relationship types between labels
+- **Property Types**: Supported data types (String, Number, Date, Hour, Boolean)
+- **Edge Configurations**: Valid paths between different label types
 
 ### ContextNode
 
-The `ContextNode` contract represents a node in the knowledge graph. It handles:
+Each Context Node represents an instance of a label with:
 
-- Document management for RAG systems
-- Typed properties based on label definition
-- Verified relationships with other nodes
+- **Properties**: Typed key-value pairs
+- **Documents**: Associated URLs with indexing status
+- **Edges**: Relationships to other nodes with:
+  - Properties
+  - Documents
+  - Status management (PENDING, ACCEPTED, REJECTED, DELETED, FINISHED)
 
-Example:
-```solidity
-interface IContextNode {
-    function addDocument(string memory url) external;
-    function setProperty(bytes32 propertyId, bytes memory value) external;
-    function addEdge(bytes32 entityId, address nodeId, string memory descriptor) external;
-}
-```
+## Getting Started
 
-## Testing
+### Prerequisites
 
-The test suite includes:
+- Node.js >= 18
+- Hardhat
+- TypeScript
+- Bun
 
-- Unit tests for each contract
-- Integration tests for contract interactions
-- Property-based tests for edge cases
-- Gas optimization tests
+### Installation
 
-Run specific test suites:
 ```bash
-# Run LabelRegistry tests
-npx hardhat test test/LabelRegistry.ts
-
-# Run ContextNode tests
-npx hardhat test test/ContextNode.ts
+bun install
 ```
 
-## Security
+### Build
 
-These contracts implement:
-
-- Access control using OpenZeppelin's `Ownable`
-- Input validation and type checking
-- Event emission for all state changes
-- Status validation for relationship changes
-
-## Gas Optimization
-
-The contracts are optimized for gas efficiency:
-
-- Minimal storage operations
-- Efficient data structures
-- Batch operations where possible
-- Storage packing for small values
-
-## Events
-
-Monitor contract activity through these events:
-
-```solidity
-// LabelRegistry Events
-event LabelAdded(bytes32 indexed labelId, string name);
-event EdgeAdded(bytes32 indexed labelId, string name);
-event PropertyAdded(bytes32 indexed entityId, bytes32 indexed PropertyId, string name);
-
-// ContextNode Events
-event PropertyUpdated(bytes32 indexed propertyId, bytes value, address indexed updatedBy);
-event DocumentAdded(bytes32 indexed documentId, string indexed url, address indexed addedBy);
-event EdgeAdded(bytes32 edgeId, bytes32 entityId, address indexed nodeIdFrom, address indexed nodeIdTo);
+```bash
+bun run build
 ```
 
-## Contributing
+## Contract Usage
 
-1. Fork the repository
-2. Create your feature branch
-3. Add tests for any new functionality
-4. Run the test suite
-5. Submit a pull request
+### Deploying a Label Registry
+
+```typescript
+const LabelRegistry = await ethers.getContractFactory("LabelRegistry");
+const registry = await LabelRegistry.deploy();
+await registry.deployed();
+```
+
+### Creating a Node
+
+```typescript
+const ContextNode = await ethers.getContractFactory("ContextNode");
+const node = await ContextNode.deploy(registryAddress, labelId);
+await node.deployed();
+```
+
+### Managing Properties
+
+```typescript
+// Add a property
+await node.setProperty(propertyId, propertyValue);
+
+// Get a property
+const value = await node.getProperty(propertyId);
+```
+
+### Managing Documents
+
+```typescript
+// Add a document
+await node.addDocument(url);
+
+// Get document details
+const doc = await node.getDocument(documentId);
+```
+
+### Managing Edges
+
+```typescript
+// Create an edge
+await node.addEdge(entityId, targetNodeAddress, descriptor);
+
+// Add documents to edge
+await node.addEdgeDocument(edgeId, url);
+
+// Update edge status
+await node.updateEdgeStatus(edgeId, newStatus);
+```
+
+## Property Types
+
+The protocol supports the following property types:
+
+- `STRING`: Text values
+- `NUMBER`: Numeric values
+- `DATE`: Date values (Unix timestamp)
+- `HOUR`: Time values (HH:MM format)
+- `BOOLEAN`: True/false values
+
+## Edge States
+
+Edges (relationships) can have the following states:
+
+- `PENDING`: Initial state
+- `ACCEPTED`: Approved by target node
+- `REJECTED`: Rejected by target node
+- `DELETED`: Removed by source node
+- `FINISHED`: Completed relationship
 
 ## License
 
-MIT
+MIT License

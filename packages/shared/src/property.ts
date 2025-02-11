@@ -2,24 +2,53 @@
 import { ethers } from 'ethers';
 
 export enum PropertyType {
+    INVALID = 0,
     STRING = 1,
     NUMBER = 2,
     DATE = 3,
     TIME = 4,
     BOOLEAN = 5
-    
 }
 
 export class Property {
 
     // Helper function to compute propertyId
-    static generateId(entitylId: string, propertyName: string)
+    static generateId(nodeAddress: string, entityId: string, propertyName: string)
     : string {
+        // Property ID is just a hash of entityId and propertyName
         return ethers.keccak256(ethers.concat([
-            ethers.getBytes(entitylId),
+            ethers.getBytes(nodeAddress),
+            ethers.getBytes(entityId),
             ethers.toUtf8Bytes(propertyName)
         ]));
     }
+
+    static getPropertyType(propertyType: PropertyType): PropertyType {
+        return propertyType;
+    }
+
+    static formatResults(results: any): any {
+        if (results.length === 0) {
+            return [];
+        }
+        const ids = results[0];
+        const names = results[1];
+        const types = results[2];
+        const values = results[3];
+        const formattedResult:any = {};
+
+        for (let i = 0; i < ids.length; i++) {
+            if (values[i] !== '0x') {
+                formattedResult[names[i]] = {
+                    'propertyId': ids[i],
+                    'propertyType': types[i],
+                    'value': Property.decodeValue(types[i], values[i])
+                }
+            }
+        }
+        return formattedResult;
+    }
+
 
     // Helper function to encode property value
     static encodeValue(propertyType: PropertyType, value: any): Uint8Array {

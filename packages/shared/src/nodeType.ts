@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-export class Label {
+export class NodeType {
     static LABEL = ethers.keccak256(ethers.toUtf8Bytes("LABEL"));
     static EDGE = ethers.keccak256(ethers.toUtf8Bytes("EDGE"));
 

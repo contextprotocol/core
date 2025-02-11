@@ -1,20 +1,20 @@
-import { LabelRegistry } from '../src/index';
-import { PropertyType } from "../../utils/src";
-import { Logger } from '../../utils/src/logger';
+import { NodeTypeRegistry } from '../src/index';
+import { PropertyType } from "../../shared/src";
+import { Logger } from '../../shared/src/logger';
 
 // Usage Example:
 async function setupRegistry() {
     Logger.info('Setting up knowledge graph...');
-    const registry = new LabelRegistry({ debug: true, registryAddress: "" });
+    const registry = new NodeTypeRegistry({ debug: true, nodeTypeRegistryAddress: process.env.NODE_TYPE_REGISTRY_ADDRESS });  
     await registry.deploy();
 
-    Logger.success('Label Registry deployed successfully!');
-    Logger.result('Address:', registry.registryAddress ?? '', { prefix: 'Label Registry' });
+    Logger.success('Registry deployed successfully!');
+    Logger.result('Address:', registry.nodeTypeRegistryAddress ?? '', { prefix: 'Node Type Registry' });
     Logger.warn('Update .env file');
-    Logger.warn(`REGISTRY_ADDRESS=${registry.registryAddress}`);
+    Logger.warn(`REGISTRY_ADDRESS=${registry.nodeTypeRegistryAddress}`);
   
     // Define Organization label with properties and relationships
-    await registry.label('Persona')
+    await registry.nodeType('Persona')
       .property('name', PropertyType.STRING)
       .property('founded', PropertyType.NUMBER)
       .property('employee', PropertyType.NUMBER)
@@ -23,13 +23,11 @@ async function setupRegistry() {
       .property('isActive', PropertyType.BOOLEAN)
       .save();
 
-    await registry.label('Organization')
+    await registry.nodeType('Organization')
       .property('name', PropertyType.STRING)
       .property('founded', PropertyType.NUMBER)
       .property('employee', PropertyType.NUMBER)
       .save();
-
-    Logger.array('Labels', await registry.getLabels());
 
     await registry.edge('WORKS_AT', 'Organization', 'Persona')
         .property('role', PropertyType.STRING)
@@ -37,7 +35,12 @@ async function setupRegistry() {
         .property('end', PropertyType.NUMBER)
         .save();
 
-    Logger.array('Edges', await registry.getEdges());
+    const entities = await registry.getEntities();
+    Logger.array('NodeTypes', entities.nodeTypes);
+    Logger.array('Edges', entities.edges);
+
+    const properties = await registry.getEntity('Organization');
+    Logger.result('Properties', properties.name);
   }
 
   setupRegistry();

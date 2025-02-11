@@ -1,11 +1,8 @@
 const { ethers } = require("hardhat");
-import { Document, Property, PropertyType, Label } from "../../utils/src";
-
-
-
+import { Document, Property, PropertyType, NodeType } from "../../shared/src";
 
 // Helper function to add multiple documents
-export async function addMultipleDocuments(node: any) {
+export async function addMultipleDocuments(nodeId: string, contract: any, contractAddress: string, owner: any) {  
   const testUrl = "ipfs://QmTest123";
   const testUrl2 = "ar://TestAR456";
   const testUrl3 = "ipfs://QmTest789";
@@ -13,8 +10,8 @@ export async function addMultipleDocuments(node: any) {
   const documentIds = [];
 
   for (const url of urls) {
-    await node.contract.connect(node.owner).addDocument(url);
-    documentIds.push(await Document.generateId(node.contractAddress, url));
+    await contract.connect(owner).addDocument(nodeId, url);
+    documentIds.push(await Document.generateId(contractAddress, url));
   }
 
   return documentIds;
@@ -22,81 +19,87 @@ export async function addMultipleDocuments(node: any) {
 
 // Generate all IDs for the test.
 function getIds(address: string) {
-  const labelId = Label.generateId(address, "Persona");
+  const personaName = "Persona";
+  const personaId = NodeType.generateId(address, personaName);
+  const organizationName = "Organization";
+  const organizationId = NodeType.generateId(address, organizationName);
+  
   return {
-    labelName: "Persona",
+    personaName,
+    personaId,
+    organizationName,
+    organizationId,
     propertyName: "Name",
     propertyAge: "Age",
-    propertyRelation: "is friend of",
-    field1Name: "field1",
-    field2Name: "field2",
-    labelId,
-    propertyNameId: Property.generateId(labelId, "Name"),
-    propertyAgeId: Property.generateId(labelId, "Age"),
-    propertyRelationId: Property.generateId(labelId, "is friend of"),
-    property1Id: Property.generateId(labelId, "field1"),
-    property2Id: Property.generateId(labelId, "field2"),
+    propertyRole: "Role",
+    edgeName: "WORKS_AT",
+    edgeId: NodeType.generateId(address, "WORKS_AT"),
+    propertyNameId: Property.generateId(address, personaId, "Name"),
+    propertyAgeId: Property.generateId(address,personaId, "Age"),
+    propertyRoleId: Property.generateId(address, personaId, "Role"),
   };
 }
 
-// Deploy LabelRegistry contract
-export async function deployLabelRegistry() {
+// Deploy NodeTypeRegistry contract
+export async function deployNodeTypeRegistry() {
   const accounts = await ethers.getSigners();
   const owner = accounts[0];
-  const LabelRegistry = await ethers.getContractFactory("LabelRegistry", owner);
-  const labelRegistry = await LabelRegistry.deploy();
-  const definitionAddress = await labelRegistry.getAddress();
-  const definitions = {
+  const NodeTypeRegistry = await ethers.getContractFactory("NodeTypeRegistry", owner);
+  const nodeType = await NodeTypeRegistry.deploy();
+  const definitionAddress = await nodeType.getAddress();
+  return {
     owner,
     ids: getIds(definitionAddress),
     otherAccount: accounts[1],
-    contract: labelRegistry,
-    address: definitionAddress,
+    contract: nodeType,
+    address: definitionAddress
   };
-
-  return definitions;
 }
 
 // Deploy ContextNode contract
-export async function deployContextNode() {
+export async function deployGraphNode() {
   const accounts = await ethers.getSigners();
-  const LabelRegistry = await ethers.getContractFactory("LabelRegistry", accounts[0]);
-  const labelRegistry = await LabelRegistry.deploy();
-  const definitionAddress = await labelRegistry.getAddress();
+  const NodeTypeRegistry = await ethers.getContractFactory("NodeTypeRegistry", accounts[0]);
+  const nodeType = await NodeTypeRegistry.deploy();
+  const nodeTypeRegistryAddress = await nodeType.getAddress();
   
-  const organizationId = Label.generateId(definitionAddress, "Organization");
-  await labelRegistry.addLabel("Organization");
-  await labelRegistry.addLabelProperty(organizationId, "name", PropertyType.STRING);
-  await labelRegistry.addLabelProperty(organizationId, "age", PropertyType.NUMBER);
-  await labelRegistry.addLabelProperty(organizationId, "createdAt", PropertyType.DATE);
-  await labelRegistry.addLabelProperty(organizationId, "startTime", PropertyType.TIME);
-  await labelRegistry.addLabelProperty(organizationId, "isActive", PropertyType.BOOLEAN);
-  const personaId = Label.generateId(definitionAddress, "Organization");
-  await labelRegistry.addLabel("Persona");
-  const edgeId = Label.generateId(definitionAddress, "Worker");
-  await labelRegistry.addEdge("Worker", organizationId, personaId); // 1 for STRING
-  await labelRegistry.addEdgeProperty(edgeId, "start", PropertyType.DATE);
-  await labelRegistry.addEdgeProperty(edgeId, "end", PropertyType.DATE);
-  await labelRegistry.addEdgeProperty(edgeId, "position", PropertyType.STRING);
+  const organizationId = NodeType.generateId(nodeTypeRegistryAddress, "Organization");
+  await nodeType.addNodeType("Organization");
+  await nodeType.addProperty(organizationId, "name", PropertyType.STRING);
+  await nodeType.addProperty(organizationId, "age", PropertyType.NUMBER);
+  await nodeType.addProperty(organizationId, "startDate", PropertyType.DATE);
+  await nodeType.addProperty(organizationId, "startTime", PropertyType.TIME);
+  await nodeType.addProperty(organizationId, "isActive", PropertyType.BOOLEAN);
+  const personaId = NodeType.generateId(nodeTypeRegistryAddress, "Persona");
+  await nodeType.addNodeType("Persona");
+  const edgeTypeId = NodeType.generateId(nodeTypeRegistryAddress, "WORKS_AT");
+  await nodeType.addEdge("WORKS_AT", organizationId, personaId);
+  await nodeType.addProperty(edgeTypeId, "prop_date", PropertyType.DATE);
+  await nodeType.addProperty(edgeTypeId, "prop_time", PropertyType.TIME);
+  await nodeType.addProperty(edgeTypeId, "prop_string", PropertyType.STRING);
+  await nodeType.addProperty(edgeTypeId, "prop_boolean", PropertyType.BOOLEAN);
+  await nodeType.addProperty(edgeTypeId, "prop_number", PropertyType.NUMBER);
   
-  const ContextNode = await ethers.getContractFactory("ContextNode");
-  const contract = await ContextNode.connect(accounts[1]).deploy(organizationId, definitionAddress);
-  const contractAddress = await contract.getAddress();
+  const GraphNode = await ethers.getContractFactory("GraphNode");
+  const organization = await GraphNode.connect(accounts[1]).deploy(organizationId, nodeTypeRegistryAddress);
+  const organizationAddress = await organization.getAddress();
 
   // Deploy relation contract with accounts[2]
-  const persona = await ContextNode.connect(accounts[2]).deploy(personaId, definitionAddress);
+  const persona = await GraphNode.connect(accounts[2]).deploy(personaId, nodeTypeRegistryAddress);
   const personaAddress = await persona.getAddress();
+  const nodeOrganizationId = await organization.nodeId();
 
   const knowledge = {
     organizationId,
+    nodeOrganizationId,
     personaId,
-    edgeId,
+    edgeTypeId,
     owner: accounts[1],
     relation: accounts[2],
-    label: labelRegistry,
-    labelAddress: definitionAddress,
-    contract,
-    contractAddress,
+    nodeTypeRegistry: nodeType,
+    nodeTypeRegistryAddress: nodeTypeRegistryAddress,
+    organization,
+    organizationAddress,
     persona,
     personaAddress,
     otherOwner: accounts[3],
@@ -105,4 +108,3 @@ export async function deployContextNode() {
   // Prepare base.
   return knowledge;
 }
-
