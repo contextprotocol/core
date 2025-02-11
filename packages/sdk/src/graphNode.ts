@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { Logger } from '../../shared/src/logger';
 import { NodeTypeRegistry } from './nodeTypeRegistry';
-import { Property,  PropertyType, Document, Edge, EdgeStatus, NodeType } from "../../shared/src";
+import { Property,  PropertyType, Document, Edge, EdgeStatus, NodeType, EntityType } from "../../shared/src";
 import { NodeProperty, GraphNodeConfig, RPC_URLS, NetworkConnection } from './types';
 import GraphNodeABI 
     from '../../contracts/artifacts/contracts/GraphNode.sol/GraphNode.json';
@@ -90,12 +90,11 @@ class EdgeBuilder {
         const edgeId = await this.parent.addEdge(this.edgeName, this.toNodeAddress, this.descriptor);
 
         // Set edge properties
-        for (const property of this.properties) {
-            await this.parent.setEdgeProperty(
+        if (this.properties.length > 0) {
+            await this.parent.addProperties(
                 edgeId,
                 this.edgeName,
-                property.key,
-                property.value
+                this.properties
             );
         }
         return {
@@ -114,7 +113,7 @@ export class GraphNode {
     public contract?: ethers.Contract;
     public nodeAddress?: string;
     public nodeTypeRegistry?: NodeTypeRegistry;
-    public labelId?: string;
+    public nodeTypeId?: string;
     public graphNodeName?: string;
     public debug: boolean = false;
 
@@ -160,6 +159,38 @@ export class GraphNode {
             this.nodeTypeRegistry = new NodeTypeRegistry({ nodeTypeRegistryAddress: registryAddress, debug: this.debug });
         }
     }
+
+        /**
+     * Deploys the NodeTypeRegistry contract if it is not already deployed.
+     * 
+     * @returns {Promise<string>} The address of the deployed contract.
+     * @throws {Error} If the wallet is not initialized.
+     */
+        private async deploy(nodeTypeId: string): Promise<string> {
+            const factory = new ethers.ContractFactory(
+                GraphNodeABI.abi, GraphNodeABI.bytecode, this.wallet
+            );
+            if (this.debug) Logger.loading('Deploying node...', { prefix: 'Node' });
+            const nodeTypeRegistryAddress = this.nodeTypeRegistry?.nodeTypeRegistryAddress as string;
+            try {
+                const contract = await factory.deploy(nodeTypeId, nodeTypeRegistryAddress);
+                await contract.waitForDeployment();
+            
+                this.nodeAddress = await contract.getAddress();
+                if (this.debug) {
+                    Logger.success('Node Deployed successfully', { prefix: 'Node' });
+                    Logger.result('Address:', this.nodeAddress as string, { prefix: 'Node' });
+                }
+                    this.contract = new ethers.Contract(
+                    this.nodeAddress,
+                    GraphNodeABI.abi,
+                    this.wallet
+                );
+            } catch (e) {
+                this.error(e, 'Node');
+            }
+            return this.nodeAddress ?? '';  
+        }
 
     /**
      * @param e Error
@@ -228,22 +259,20 @@ export class GraphNode {
     }
 
     async addNode(graphNodeName: string): Promise<{nodeId: string , properties: any[]}> {
-        console.log("Creating GraphNode -> checkWallet");
         this.checkWallet();
-        console.log("Creating GraphNode -> checkRegistry");
         this.checkRegistry();
         
         this.graphNodeName = graphNodeName;
-        console.log("Creating GraphNode -> ", graphNodeName);
         if (!this.contract) {
-            console.log("Creating GraphNode -> deploy");
-            const label = await this.nodeTypeRegistry?.getNodeType(graphNodeName);
-            this.labelId = label?.labelId as string;
-            this.nodeAddress = await this.deploy(label?.labelId as string);
+            const entity = await this.nodeTypeRegistry?.getEntity(graphNodeName);
+            if (!entity || !entity.exists || entity.entityType !== EntityType.NODE) {
+                this.error({msg: 'NodeType not found'}, 'Node');
+            }
+            this.nodeTypeId = entity?.entityId as string;
+            this.nodeAddress = await this.deploy(this.nodeTypeId);
         } else {
-            
-            const label = await this.nodeTypeRegistry?.getNodeType(this.graphNodeName?? '');
-            this.labelId = label?.labelId as string;
+            const entity = await this.nodeTypeRegistry?.getEntity(graphNodeName);
+            this.nodeTypeId = entity?.entityId as string;
             return { nodeId: this.nodeAddress as string, properties: [] };
         }
         
@@ -293,7 +322,8 @@ export class GraphNode {
 
     }
 
-    async setEdgeProperty(edgeId: string, edgeName: string, key: string, value: any) {
+    async setEdgeProperties(edgeId: string, edgeName:string,  properties: any) {
+        /*
         this.checkContract();
         this.checkRegistry();
         // Get edge details from registry
@@ -309,7 +339,7 @@ export class GraphNode {
         const propertyId = Property.generateId(edgeTypeId, key);
         const propertyType = await this.nodeTypeRegistry?.getNodeTypeProperty(edgeTypeId, propertyId) as number;
         // console.log(propertyType);
-
+*/
 /*        if (!edge || !edge.exists) {
             throw new Error(`Edge ${edgeId} not found in registry`);
         }
@@ -332,46 +362,19 @@ export class GraphNode {
         }*/
     }
 
-    /**
-     * Deploys the NodeTypeRegistry contract if it is not already deployed.
-     * 
-     * @returns {Promise<string>} The address of the deployed contract.
-     * @throws {Error} If the wallet is not initialized.
-     */
-    private async deploy(labelId: string): Promise<string> {
-        const factory = new ethers.ContractFactory(
-            GraphNodeABI.abi, GraphNodeABI.bytecode, this.wallet
-        );
-        if (this.debug) Logger.loading('Deploying node...', { prefix: 'Node' });
-        const nodeTypeRegistryAddress = this.nodeTypeRegistry?.nodeTypeRegistryAddress as string;
-        try {
-            const contract = await factory.deploy(labelId, nodeTypeRegistryAddress);
-            await contract.waitForDeployment();
-        
-            this.nodeAddress = await contract.getAddress();
-            if (this.debug) {
-                Logger.success('Node Deployed successfully', { prefix: 'Node' });
-                Logger.result('Address:', this.nodeAddress as string, { prefix: 'Node' });
-            }
-                this.contract = new ethers.Contract(
-                this.nodeAddress,
-                GraphNodeABI.abi,
-                this.wallet
-            );
-        } catch (e) {
-            this.error(e, 'Node');
-        }
-        return this.nodeAddress ?? '';  
-    }
 
-    async addProperty(key: string, value: any) {   
-       const labelId: string = this.labelId as string;
-        if (!labelId || !this.graphNodeName) this.error({msg: 'NodeType not initialized'}, 'Node');
+
+    async addProperties(edgeId: string, edgeName:string,  properties: any) {  
+        
+       const nodeTypeId: string = this.nodeTypeId as string;
+        if (!nodeTypeId || !this.graphNodeName) this.error({msg: 'NodeType not initialized'}, 'Node');
+        console.log("Creating GraphNode -> addProperty -> nodeTypeId", nodeTypeId);
 
         // Get property information from registry
-        const label = await this.nodeTypeRegistry?.getNodeType(this.graphNodeName as string);
-        if (!label || !label.exists) this.error({msg: 'NodeType not found'}, 'Node');
-    
+        const nodeType = await this.nodeTypeRegistry?.getEntity(this.graphNodeName as string);
+        if (!nodeType || !nodeType.exists) this.error({msg: 'NodeType not found'}, 'Node');
+        console.log(nodeType, edgeId, properties);
+/*    
         // Actual value
         const actualValue:any = await this.getProperty(key);
         if (actualValue === value) {
@@ -380,8 +383,8 @@ export class GraphNode {
         }
 
         // Get Value.
-        const propertyId = Property.generateId(labelId, key);
-        const propertyType: PropertyType = await this.nodeTypeRegistry?.getNodeTypeProperty(labelId, propertyId) as number;
+        const propertyId = Property.generateId(nodeTypeId, key);
+        const propertyType: PropertyType = await this.nodeTypeRegistry?.getNodeTypeProperty(nodeTypeId, propertyId) as number;
         const bytesValue: Uint8Array = Property.encodeValue(propertyType, value);
 
         // Set the property in the contract
@@ -396,16 +399,18 @@ export class GraphNode {
             if (this.debug) Logger.error(`Failed to set property ${key}: ${error}`, { prefix: 'Node' });
             throw error;
         }
+            */
     }
 
 
     async getProperty(propertyName: string): Promise<any> {
-        if (!this.labelId || !this.graphNodeName) {
+        /*
+        if (!this.nodeTypeId || !this.graphNodeName) {
             throw new Error('Label not initialized');
         }
 
         // Generate property ID
-        const propertyId = Property.generateId(this.labelId, propertyName);
+        const propertyId = Property.generateId(this.nodeTypeId, propertyName);
         
         // Get property from contract
         const result = await this.contract?.getProperty(propertyId);
@@ -415,10 +420,12 @@ export class GraphNode {
         
         const [value, propertyType] = result;
         return Property.decodeValue(propertyType, value);
+        */
 
     }
 
     async addDocument(url: string): Promise<string> {
+        /*
         this.checkContract();
         
         if (!url || url.trim() === '') {
@@ -435,10 +442,11 @@ export class GraphNode {
         } catch (error: any) {
             if (this.debug) Logger.info(`Document already exists: ${url}`, { prefix: 'Document' });
             return url;
-        }
+        }*/
     }
 
     async removeDocument(url: string): Promise<void> {
+        /*
         this.checkContract();
         
         try {
@@ -452,9 +460,11 @@ export class GraphNode {
             this.error({msg: `Failed to remove document: ${error.message}`}, 'Document');
             throw error;
         }
+            */
     }
 
     async getDocuments(): Promise<string[]> {
+        /*
         this.checkContract();
         
         try {
@@ -472,6 +482,6 @@ export class GraphNode {
         } catch (error) {
             this.error({ msg: 'Failed to get Documents'}, 'Document');
             throw error;
-        }
+        }*/
     }
 }

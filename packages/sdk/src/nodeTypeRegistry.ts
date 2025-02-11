@@ -125,6 +125,39 @@ export class NodeTypeRegistry {
         this.contract?.connect(this.wallet);
     }
 
+    /**
+     * Deploys the NodeTypeRegistry contract if it is not already deployed.
+     * 
+     * @returns {Promise<string>} The address of the deployed contract.
+     * @throws {Error} If the wallet is not initialized.
+     */
+        async deploy(): Promise<string> {
+            this.checkWallet();
+            if (!this.contract) {
+                const factory = new ethers.ContractFactory(
+                    NodeTypeRegistryABI.abi, NodeTypeRegistryABI.bytecode, this.wallet
+                );
+                if (this.debug) Logger.loading('Deploying registry...', { prefix: 'Registry' });
+                const contract = await factory.deploy();
+                await contract.waitForDeployment();
+                this.nodeTypeRegistryAddress = await contract.getAddress();
+                if (this.debug) {
+                    Logger.success('Deployed successfully', { prefix: 'Registry' });
+                    Logger.result('Address:', this.nodeTypeRegistryAddress as string, { prefix: 'Registry' });
+                }
+            
+                this.contract = new ethers.Contract(
+                    this.nodeTypeRegistryAddress,
+                    NodeTypeRegistryABI.abi,
+                    this.wallet
+                );
+            } else {
+                Logger.result('Address:', this.nodeTypeRegistryAddress as string, { prefix: 'Registry' });
+                if (this.debug) Logger.warn('Registry already deployed', { prefix: 'Registry' });
+            }
+            return this.nodeTypeRegistryAddress ?? '';  
+        }
+    
     async getWallet(){
         const address = await this.wallet?.getAddress();
         if (address && this.debug) Logger.result('Wallet', address, { prefix: 'Wallet' });
@@ -160,40 +193,6 @@ export class NodeTypeRegistry {
         return new NodeBuilder(name, true, this, from, to);
     }
 
-    /**
-     * Deploys the NodeTypeRegistry contract if it is not already deployed.
-     * 
-     * @returns {Promise<string>} The address of the deployed contract.
-     * @throws {Error} If the wallet is not initialized.
-     */
-    async deploy(): Promise<string> {
-        this.checkWallet();
-        if (!this.contract) {
-            const factory = new ethers.ContractFactory(
-                NodeTypeRegistryABI.abi, NodeTypeRegistryABI.bytecode, this.wallet
-            );
-            if (this.debug) Logger.loading('Deploying registry...', { prefix: 'Registry' });
-            const contract = await factory.deploy();
-            await contract.waitForDeployment();
-            this.nodeTypeRegistryAddress = await contract.getAddress();
-            if (this.debug) {
-                Logger.success('Deployed successfully', { prefix: 'Registry' });
-                Logger.result('Address:', this.nodeTypeRegistryAddress as string, { prefix: 'Registry' });
-            }
-        
-            this.contract = new ethers.Contract(
-                this.nodeTypeRegistryAddress,
-                NodeTypeRegistryABI.abi,
-                this.wallet
-            );
-        } else {
-            Logger.result('Address:', this.nodeTypeRegistryAddress as string, { prefix: 'Registry' });
-            if (this.debug) Logger.warn('Registry already deployed', { prefix: 'Registry' });
-        }
-        return this.nodeTypeRegistryAddress ?? '';  
-    }
-
-
     async propertyId(nodeTypeId: string, propertyName: string): Promise<string> {
         return Property.generateId(this.nodeTypeRegistryAddress ?? '', nodeTypeId, propertyName);
     }
@@ -220,6 +219,7 @@ export class NodeTypeRegistry {
         name: string, 
         fromNodeTypeId: string,
         toNodeTypeId: string,
+        entityType: number,
         properties: { name: string; type: PropertyType }[] 
     }> {
         const entityId = NodeType.generateId(this.nodeTypeRegistryAddress ?? '', nodetypesName);
@@ -236,6 +236,7 @@ export class NodeTypeRegistry {
             name: nodetypes[1], 
             fromNodeTypeId: nodetypes[2],
             toNodeTypeId: nodetypes[3],
+            entityType: parseInt(nodetypes[4]),
             properties
         };
     }
@@ -262,7 +263,6 @@ export class NodeTypeRegistry {
 
             if (this.debug) Logger.loading(`Adding ${entityType} ${entityName}...`, { prefix: entityType });
             let tx;
-            console.log(entityType);
             if (entityType === 'NodeType') {
                 tx = await this.contract?.addNodeType(entityName);
             } else if (entityType === 'Edge' && params) {

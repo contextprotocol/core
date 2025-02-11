@@ -1,8 +1,12 @@
 import { ethers } from 'ethers';
 
+export enum EntityType {
+    INVALID = 0,
+    NODE = 1,
+    EDGE = 2
+}
+
 export class NodeType {
-    static LABEL = ethers.keccak256(ethers.toUtf8Bytes("LABEL"));
-    static EDGE = ethers.keccak256(ethers.toUtf8Bytes("EDGE"));
 
     // Helper function to compute Id
     static generateId(contractAddress: string, name: string): string {
