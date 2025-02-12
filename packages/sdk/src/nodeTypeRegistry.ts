@@ -1,6 +1,5 @@
 import { ethers } from 'ethers';
-import { Logger } from '../../shared/src/logger';
-import { PropertyType, Property, NodeType } from "../../shared/src";
+import { PropertyType, Property,Logger, IdGenerator } from '../../shared/src';
 import { NodeTypeRegistryConfig, RPC_URLS, NetworkConnection } from './types';
 import { NodeTypeProperty } from './types';
 import NodeTypeRegistryABI
@@ -102,7 +101,6 @@ export class NodeTypeRegistry {
                 this.wallet);
             this.nodeTypeRegistryAddress = nodeTypeRegistryAddress;
         }
-        
     }
 
     /**
@@ -123,6 +121,26 @@ export class NodeTypeRegistry {
     connect(privateKey: string): void {
         this.wallet = new ethers.Wallet(privateKey, this.provider);
         this.contract?.connect(this.wallet);
+    }
+
+    /**
+     * Checks if the wallet is initialized.
+     */
+    private checkWallet() {
+        if (!this.wallet) {
+            if (this.debug) Logger.fatal('Wallet not initialized', { prefix: 'Wallet' }); 
+            else throw new Error('Wallet not initialized');
+        }
+    }
+
+    /**
+    * Checks if the contract is initialized.
+    */
+    private checkContract() {
+        if (!this.contract) {
+            if (this.debug) Logger.fatal('Contract not initialized', { prefix: 'Registry' }); 
+            else throw new Error('Contract not initialized');
+        }
     }
 
     /**
@@ -158,30 +176,8 @@ export class NodeTypeRegistry {
             return this.nodeTypeRegistryAddress ?? '';  
         }
     
-    async getWallet(){
-        const address = await this.wallet?.getAddress();
-        if (address && this.debug) Logger.result('Wallet', address, { prefix: 'Wallet' });
-    }
 
-    /**
-     * Checks if the wallet is initialized.
-     */
-    private checkWallet() {
-        if (!this.wallet) {
-            if (this.debug) Logger.fatal('Wallet not initialized', { prefix: 'Wallet' }); 
-            else throw new Error('Wallet not initialized');
-        }
-    }
 
-    /**
-    * Checks if the contract is initialized.
-    */
-    private checkContract() {
-        if (!this.contract) {
-            if (this.debug) Logger.fatal('Contract not initialized', { prefix: 'Registry' }); 
-            else throw new Error('Contract not initialized');
-        }
-    }
     
     // Create a new nodetypes with builder pattern
     nodeType(name: string): NodeBuilder {
@@ -222,7 +218,7 @@ export class NodeTypeRegistry {
         entityType: number,
         properties: { name: string; type: PropertyType }[] 
     }> {
-        const entityId = NodeType.generateId(this.nodeTypeRegistryAddress ?? '', nodetypesName);
+        const entityId = IdGenerator.generateNodeTypeId(this.nodeTypeRegistryAddress ?? '', nodetypesName);
         const nodetypes = await this.contract?.getEntity(entityId);
         let properties: { name: string; type: PropertyType }[] = [];
         const exists = nodetypes[0] as boolean;
@@ -253,7 +249,7 @@ export class NodeTypeRegistry {
         this.checkWallet();
         this.checkContract();
         try {
-            const entityId = NodeType.generateId(this.nodeTypeRegistryAddress ?? '', entityName);
+            const entityId = IdGenerator.generateNodeTypeId(this.nodeTypeRegistryAddress ?? '', entityName);
             const entity = await this.getEntity(entityName);
             
             if (entity.exists) {

@@ -1,4 +1,3 @@
-export { NodeType, EntityType } from './nodeType';
-export { Edge, EdgeStatus } from './edge';
-export { Document } from './document';
+export * from './IdGenerator';
 export { Property, PropertyType  } from './property';
+export { Logger } from './logger';

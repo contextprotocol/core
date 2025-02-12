@@ -51,7 +51,7 @@ describe("NodeTypeRegistry", function () {
   describe("Property Management", function () {
     it("Should add a property to a node type", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
-      const nodeTypeId = NodeType.generateId(registry.address, "Organization");
+      const nodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Organization");
       await registry.contract.addNodeType("Organization");
       
       const propertyId = Property.generateId(registry.address, nodeTypeId, "name");
@@ -65,7 +65,7 @@ describe("NodeTypeRegistry", function () {
 
     it("Should list all properties of an entity", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
-      const nodeTypeId = NodeType.generateId(registry.address, "Person");
+      const nodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Person");
       await registry.contract.addNodeType("Person");
       
       // Add multiple properties
@@ -99,7 +99,7 @@ describe("NodeTypeRegistry", function () {
 
     it("Should check if entity has a property", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
-      const nodeTypeId = NodeType.generateId(registry.address, "Person");
+      const nodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Person");
       await registry.contract.addNodeType("Person");
       
       const namePropertyId = Property.generateId(registry.address, nodeTypeId, "name");
@@ -113,7 +113,7 @@ describe("NodeTypeRegistry", function () {
 
     it("Should revert when adding duplicate property", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
-      const nodeTypeId = NodeType.generateId(registry.address, "Organization");
+      const nodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Organization");
       await registry.contract.addNodeType("Organization");
       
       const propertyId = Property.generateId(registry.address, nodeTypeId, "name");
@@ -124,7 +124,7 @@ describe("NodeTypeRegistry", function () {
 
     it("Should revert when getting non-existent property", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
-      const nodeTypeId = NodeType.generateId(registry.address, "Organization");
+      const nodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Organization");
       const propertyId = Property.generateId(registry.address, nodeTypeId, "nonexistent");
       
       await expect(registry.contract.getPropertyType(propertyId))
@@ -146,13 +146,13 @@ describe("NodeTypeRegistry", function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
 
       // Create two node types first
-      const personNodeTypeId = NodeType.generateId(registry.address, "Person");
-      const orgNodeTypeId = NodeType.generateId(registry.address, "Organization");
+      const personNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Person");
+      const orgNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Organization");
 
       await registry.contract.addNodeType("Person");
       await registry.contract.addNodeType("Organization");
 
-      const edgeTypeId = NodeType.generateId(registry.address, "WORKS_AT");
+      const edgeTypeId = IdGenerator.generateNodeTypeId(registry.address, "WORKS_AT");
       await expect(registry.contract.addEdge("WORKS_AT", personNodeTypeId, orgNodeTypeId))
         .to.emit(registry.contract, "EntityAdded")
         .withArgs(edgeTypeId, "WORKS_AT", personNodeTypeId, orgNodeTypeId);
@@ -170,13 +170,13 @@ describe("NodeTypeRegistry", function () {
     it("Should validate edge connections correctly", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
 
-      const personNodeTypeId = NodeType.generateId(registry.address, "Person");
-      const orgNodeTypeId = NodeType.generateId(registry.address, "Organization");
+      const personNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Person");
+      const orgNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Organization");
 
       await registry.contract.addNodeType("Person");
       await registry.contract.addNodeType("Organization");
 
-      const edgeTypeId = NodeType.generateId(registry.address, "WORKS_AT");
+      const edgeTypeId = IdGenerator.generateNodeTypeId(registry.address, "WORKS_AT");
       await registry.contract.addEdge("WORKS_AT", personNodeTypeId, orgNodeTypeId);
 
       expect(await registry.contract.isValidEdge(edgeTypeId, personNodeTypeId, orgNodeTypeId)).to.be.true;
@@ -185,11 +185,11 @@ describe("NodeTypeRegistry", function () {
 
     it("Should revert when adding edge with invalid node types", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
-      const invalidNodeTypeId = NodeType.generateId(registry.address, "Invalid");
+      const invalidNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Invalid");
 
       await registry.contract.addNodeType("Person");
 
-      const personNodeTypeId = NodeType.generateId(registry.address, "Person");
+      const personNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Person");
       await expect(registry.contract.addEdge("WORKS_AT", personNodeTypeId, invalidNodeTypeId))
         .to.be.revertedWithCustomError(registry.contract, "InvalidNodeTypePair");
     });
@@ -202,8 +202,8 @@ describe("NodeTypeRegistry", function () {
       await registry.contract.addNodeType("Person");
       await registry.contract.addNodeType("Organization");
 
-      const personNodeTypeId = NodeType.generateId(registry.address, "Person");
-      const orgNodeTypeId = NodeType.generateId(registry.address, "Organization");
+      const personNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Person");
+      const orgNodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Organization");
 
       await registry.contract.addEdge("WORKS_AT", personNodeTypeId, orgNodeTypeId);
 
@@ -219,7 +219,7 @@ describe("NodeTypeRegistry", function () {
 
     it("Should return correct property type", async function () {
       const registry = await loadFixture(deployNodeTypeRegistry);
-      const nodeTypeId = NodeType.generateId(registry.address, "Organization");
+      const nodeTypeId = IdGenerator.generateNodeTypeId(registry.address, "Organization");
       await registry.contract.addNodeType("Organization");
 
       const propertyId = Property.generateId(registry.address, nodeTypeId, "name");

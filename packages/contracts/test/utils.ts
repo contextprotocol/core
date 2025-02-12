@@ -20,9 +20,9 @@ export async function addMultipleDocuments(nodeId: string, contract: any, contra
 // Generate all IDs for the test.
 function getIds(address: string) {
   const personaName = "Persona";
-  const personaId = NodeType.generateId(address, personaName);
+  const personaId = IdGenerator.generateNodeTypeId(address, personaName);
   const organizationName = "Organization";
-  const organizationId = NodeType.generateId(address, organizationName);
+  const organizationId = IdGenerator.generateNodeTypeId(address, organizationName);
   
   return {
     personaName,
@@ -33,7 +33,7 @@ function getIds(address: string) {
     propertyAge: "Age",
     propertyRole: "Role",
     edgeName: "WORKS_AT",
-    edgeId: NodeType.generateId(address, "WORKS_AT"),
+    edgeId: IdGenerator.generateNodeTypeId(address, "WORKS_AT"),
     propertyNameId: Property.generateId(address, personaId, "Name"),
     propertyAgeId: Property.generateId(address,personaId, "Age"),
     propertyRoleId: Property.generateId(address, personaId, "Role"),
@@ -63,16 +63,16 @@ export async function deployGraphNode() {
   const nodeType = await NodeTypeRegistry.deploy();
   const nodeTypeRegistryAddress = await nodeType.getAddress();
   
-  const organizationId = NodeType.generateId(nodeTypeRegistryAddress, "Organization");
+  const organizationId = IdGenerator.generateNodeTypeId(nodeTypeRegistryAddress, "Organization");
   await nodeType.addNodeType("Organization");
   await nodeType.addProperty(organizationId, "name", PropertyType.STRING);
   await nodeType.addProperty(organizationId, "age", PropertyType.NUMBER);
   await nodeType.addProperty(organizationId, "startDate", PropertyType.DATE);
   await nodeType.addProperty(organizationId, "startTime", PropertyType.TIME);
   await nodeType.addProperty(organizationId, "isActive", PropertyType.BOOLEAN);
-  const personaId = NodeType.generateId(nodeTypeRegistryAddress, "Persona");
+  const personaId = IdGenerator.generateNodeTypeId(nodeTypeRegistryAddress, "Persona");
   await nodeType.addNodeType("Persona");
-  const edgeTypeId = NodeType.generateId(nodeTypeRegistryAddress, "WORKS_AT");
+  const edgeTypeId = IdGenerator.generateNodeTypeId(nodeTypeRegistryAddress, "WORKS_AT");
   await nodeType.addEdge("WORKS_AT", organizationId, personaId);
   await nodeType.addProperty(edgeTypeId, "prop_date", PropertyType.DATE);
   await nodeType.addProperty(edgeTypeId, "prop_time", PropertyType.TIME);

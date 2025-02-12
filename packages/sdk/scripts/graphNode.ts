@@ -14,21 +14,27 @@ async function updateNode() {
         .property('employee', 10)
       .save();
 
+    const orgProperties = await org.getProperties(org.nodeId);
+    console.log(orgProperties);
+
     // Define Organization label with properties and relationships
-/*    await alex.node('Persona')
+    await alex.node('Persona')
         .property('name', 'Alex')
         .property('founded', 2021)
         .document('ipfs://QmTest123')
         .document('https://example.com/doc1')
       .save();
- 
-      await alex.addDocument('https://example.com/doc3');
 
-      await org.edge('WORKS_AT', 'founder')
+    const alexProperties = await alex.getProperties(alex.nodeId);
+    console.log(alexProperties);
+ 
+    await alex.addDocument(alex.nodeId, 'https://example.com/doc3');
+
+    await org.edge('WORKS_AT', 'founder')
         .to(alex.nodeAddress as string)
         .property('role', 'CEO')
         .property('start', new Date('2021-01-01'))
-        .save();*/
-  }
+        .save();
+}
 
-  updateNode();
+updateNode();
