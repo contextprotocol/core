@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployNodeTypeRegistry } from "./utils";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { NodeType, Property } from "../../shared/src";
+import { IdGenerator, Property } from "../../shared/src";
 
 // test for NodeTypeRegistry
 describe("NodeTypeRegistry", function () {

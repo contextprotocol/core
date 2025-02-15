@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { Logger, IdGenerator } from '../../shared/src';
 import { NodeTypeRegistry } from './nodeTypeRegistry';
-import { Property,  PropertyType, EntityType } from "../../shared/src";
+import { Property,  PropertyType, EntityType, EdgeStatus } from "../../shared/src";
 import { NodeProperty, GraphNodeConfig, RPC_URLS, NetworkConnection } from './types';
 import GraphNodeABI 
     from '../../contracts/artifacts/contracts/GraphNode.sol/GraphNode.json';
@@ -37,8 +37,18 @@ class NodeBuilder {
         // Add node (if not deployed).
         await this.parent.addNode(this.graphNodeName);
       
+        // Get property IDs from registry and set them
+        const propertyPromises = this.properties.map(async (prop) => {
+            const propertyId = await this.parent.nodeTypeRegistry?.propertyId(this.parent.nodeTypeId, prop.key);
+            return {
+                ...prop,
+                propertyId
+            };
+        });
+        const propertiesWithIds = await Promise.all(propertyPromises);
+        
         // Save properties
-        await this.parent.addProperties(this.parent.nodeId, this.properties);
+        await this.parent.addProperties(this.parent.nodeId, propertiesWithIds);
 
         // Save documents
         for (const url of this.documents) {
@@ -59,6 +69,7 @@ class EdgeBuilder {
     private documents: string[] = [];
     private edgeName: string;
     private descriptor: string;
+    private fromNodeAddress?: string;
     private toNodeAddress?: string;
   
     constructor(edgeName: string, descriptor: string, parent: GraphNode) {
@@ -68,12 +79,21 @@ class EdgeBuilder {
     }
   
     property(key: string, value: any): EdgeBuilder {
-        this.properties.push({ key, value, type: PropertyType.NUMBER, propertyId: '' });
+        const type = Property.getType(value);
+        if (type === PropertyType.INVALID) {
+            this.parent.error({ msg: 'Invalid property type' }, 'Edge');
+        }
+        this.properties.push({ key, value, type, propertyId: '' });
         return this;
     }
 
     document(url: string): EdgeBuilder {
         this.documents.push(url);
+        return this;
+    }
+
+    from(nodeAddress: string): EdgeBuilder {
+        this.fromNodeAddress = nodeAddress;
         return this;
     }
 
@@ -84,24 +104,79 @@ class EdgeBuilder {
   
     async save() {
         if (this.parent.debug) Logger.info(`Saving Edge ${this.edgeName}`, { prefix: 'Node' });
-        if (!this.toNodeAddress || this.descriptor === ''   ) throw new Error("To node address and descriptor are required");
-        const edgeId = IdGenerator.generateEdgeId(this.edgeName, this.toNodeAddress, this.descriptor);
-          // Add node (if not deployed).
-          await this.parent.addNode(this.edgeName);
+        if (!this.toNodeAddress || this.descriptor === '') throw new Error("To node address and descriptor are required");
         
-          // Save properties
-          await this.parent.addProperties(edgeId, this.properties);
-  
-          // Save documents
-          for (const url of this.documents) {
-              await this.parent.addDocument(edgeId, url);
-          }
-      
-          return {
-              name: this.edgeName,
-              properties: this.properties
-          };
-      }
+        // First get the edge type ID from registry
+        this.parent.checkRegistry();
+        const registryAddress = this.parent.nodeTypeRegistry?.nodeTypeRegistryAddress as string;
+        const edgeTypeId = IdGenerator.generateNodeTypeId(registryAddress, this.edgeName);
+        const edgeType = await this.parent.nodeTypeRegistry?.getEntity(this.edgeName);
+        if (!edgeType || !edgeType.exists || edgeType.entityType !== EntityType.EDGE) {
+            throw new Error(`Edge type ${this.edgeName} not found in registry or is not an edge type`);
+        }
+
+        // Generate edge ID using the edge type ID from registry
+        const edgeId = IdGenerator.generateEdgeId(edgeType.entityId, this.toNodeAddress, this.descriptor);
+
+        // Make sure both nodes have their node type IDs initialized
+        const fromNode = new GraphNode({ 
+            debug: this.parent.debug, 
+            nodeAddress: this.fromNodeAddress,
+            nodeTypeRegistryAddress: registryAddress
+        });
+
+        const toNode = new GraphNode({ 
+            debug: this.parent.debug, 
+            nodeAddress: this.toNodeAddress,
+            nodeTypeRegistryAddress: registryAddress
+        });
+
+        // Add the edge first using the edge type ID
+        this.parent.checkContract();
+        const tx = await this.parent.contract?.addEdge(edgeTypeId, this.toNodeAddress, this.descriptor);
+        await tx.wait();
+
+        // Get property IDs from registry and set them
+        const propertyPromises = this.properties.map(async (prop) => {
+            const propertyId = await this.parent.nodeTypeRegistry?.propertyId(edgeType.entityId, prop.key);
+            return {
+                ...prop,
+                propertyId
+            };
+        });
+        const propertiesWithIds = await Promise.all(propertyPromises);
+        
+        // Save properties
+        await this.parent.addProperties(edgeId, propertiesWithIds);
+
+        // Save documents
+        for (const url of this.documents) {
+            await this.parent.addDocument(edgeId, url);
+        }
+
+        return edgeId;
+    }
+
+    async accept(): Promise<void> {
+        if (!this.fromNodeAddress) throw new Error("From node address is required");
+        if (this.descriptor === '') throw new Error("Descriptor is required");
+        if (!this.parent.nodeAddress) throw new Error("Parent node address is not set");
+        
+        // Get the edge type ID from registry
+        this.parent.checkRegistry();
+        const registryAddress = this.parent.nodeTypeRegistry?.nodeTypeRegistryAddress as string;
+        const edgeTypeId = IdGenerator.generateNodeTypeId(registryAddress, this.edgeName);
+        const edgeType = await this.parent.nodeTypeRegistry?.getEntity(this.edgeName);
+        if (!edgeType || !edgeType.exists || edgeType.entityType !== EntityType.EDGE) {
+            throw new Error(`Edge type ${this.edgeName} not found in registry or is not an edge type`);
+        }
+
+        // Generate edge ID using the parent node's address as the target
+        const edgeId = IdGenerator.generateEdgeId(edgeType.entityId, this.parent.nodeAddress as string, this.descriptor);
+
+        // Accept the edge using the current node
+        await this.parent.answerEdge(this.fromNodeAddress, edgeId, EdgeStatus.ACCEPTED);
+    }
 }
 
 // GraphNode class
@@ -247,6 +322,7 @@ export class GraphNode {
 
     // Create a new edge with builder pattern
     edge(type: string, descriptor: string): EdgeBuilder {
+        this.graphNodeName = type;
         return new EdgeBuilder(type, descriptor, this);
     }
 
@@ -343,7 +419,6 @@ export class GraphNode {
         const propertyId = Property.generateId(edgeTypeId, key);
         const propertyType = await this.nodeTypeRegistry?.getNodeTypeProperty(edgeTypeId, propertyId) as number;
         // console.log(propertyType);
-*/
 /*        if (!edge || !edge.exists) {
             throw new Error(`Edge ${edgeId} not found in registry`);
         }
@@ -388,12 +463,15 @@ export class GraphNode {
         if (!nodeType || !nodeType.exists) this.error({msg: 'NodeType not found'}, 'Node');
         const registryAddress = this.nodeTypeRegistry?.nodeTypeRegistryAddress ?? '';
 
+        // For edges, we need to use the edge type ID instead of the node type ID
+        const typeIdForProperties = nodeType.entityType === EntityType.EDGE ? nodeType.entityId : this.nodeTypeId;
+
         const properties: any[] = [];
         for (const property of _properties) {
             // Find matching property type from nodeType
             const propertyType = nodeType.properties.find(p => p.name === property.key);
             if (propertyType) {
-                const propertyTypeId = Property.generateId(registryAddress, this.nodeTypeId, property.key);
+                const propertyTypeId = Property.generateId(registryAddress, typeIdForProperties, property.key);
                 const value = Property.encodeValue(Number(propertyType.type), property.value);
                 properties.push({ propertyTypeId, value });
             }
@@ -489,5 +567,13 @@ export class GraphNode {
             this.error({ msg: 'Failed to get Documents'}, 'Document');
             throw error;
         }*/
+    }
+
+    async answerEdge(toNodeAddress: string, edgeId: string, status: EdgeStatus): Promise<void> {
+        this.checkContract();
+        this.checkWallet();
+        
+        const contract = this.contract as ethers.Contract;
+        await contract.answerEdge(toNodeAddress, edgeId, status);
     }
 }

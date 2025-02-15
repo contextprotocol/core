@@ -263,7 +263,7 @@ export class NodeTypeRegistry {
                 tx = await this.contract?.addNodeType(entityName);
             } else if (entityType === 'Edge' && params) {
                 const from = await this.getEntity(params.fromNodeTypeName as string);
-                const to = await this.getEntity(params.fromNodeTypeName as string);
+                const to = await this.getEntity(params.toNodeTypeName as string);
                 tx = await this.contract?.addEdge(entityName, from.entityId, to.entityId);
             }
             await tx.wait();

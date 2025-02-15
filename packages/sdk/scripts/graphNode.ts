@@ -8,15 +8,14 @@ async function updateNode() {
     const org = new GraphNode({ debug: true, nodeAddress: process.env.NODE_ADDRESS_ORGANIZATION });
     const alex = new GraphNode({ debug: true, nodeAddress: process.env.NODE_ADDRESS_PERSONA });
 
-    await org.node('Organization')
-        .property('name', 'Context')
-        .property('founded', 2021)
-        .property('employee', 10)
-      .save();
+     await org.node('Organization')
+         .property('name', 'Context')
+         .property('founded', 2021)
+         .property('employee', 10)
+       .save();
 
-    const orgProperties = await org.getProperties(org.nodeId);
-    console.log(orgProperties);
-
+    // const orgProperties = await org.getProperties(org.nodeId);
+    // console.log(orgProperties);
     // Define Organization label with properties and relationships
     await alex.node('Persona')
         .property('name', 'Alex')
@@ -25,16 +24,19 @@ async function updateNode() {
         .document('https://example.com/doc1')
       .save();
 
-    const alexProperties = await alex.getProperties(alex.nodeId);
-    console.log(alexProperties);
- 
-    await alex.addDocument(alex.nodeId, 'https://example.com/doc3');
+    // const alexProperties = await alex.getProperties(alex.nodeId);
+    // console.log(alexProperties);
+    // await alex.addDocument(alex.nodeId, 'https://example.com/doc3');
 
     await org.edge('WORKS_AT', 'founder')
         .to(alex.nodeAddress as string)
         .property('role', 'CEO')
         .property('start', new Date('2021-01-01'))
         .save();
+
+    await alex.edge('WORKS_AT', 'founder')
+        .from(org.nodeAddress as string)
+        .accept();
 }
 
 updateNode();

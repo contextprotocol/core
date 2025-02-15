@@ -23,6 +23,22 @@ export class Property {
         ]));
     }
 
+    static getType(value: any): PropertyType {
+        let type = PropertyType.INVALID;
+        if (typeof value === 'string') {
+            type = PropertyType.STRING;
+        } else if (typeof value === 'number') {
+            type = PropertyType.NUMBER;
+        } else if (value instanceof Date) {
+            type = PropertyType.NUMBER;
+            value = Math.floor(value.getTime() / 1000); // Convert to Unix timestamp
+        } else if (typeof value === 'boolean') {
+            type = PropertyType.BOOLEAN;
+        }
+        return type;
+    }
+    
+
     static getPropertyType(propertyType: PropertyType): PropertyType {
         return propertyType;
     }

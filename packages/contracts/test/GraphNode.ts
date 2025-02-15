@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { deployGraphNode, addMultipleDocuments  } from "./utils";
-import { Property, Document, Edge, EdgeStatus } from "../../shared/src";
+import { Property, IdGenerator, EdgeStatus } from "../../shared/src";
 
 const { ethers } = require("hardhat");
 const testUrl = "ipfs://QmTest123";
@@ -87,7 +87,7 @@ describe("KnowledgeBase", function () {
         describe("Adding Documents", function () {
             it("Should add a document correctly", async function () {
                 const node = await loadFixture(deployGraphNode);
-                const documentId = await Document.generateId(node.organizationAddress, testUrl);
+                const documentId = await IdGenerator.generateDocumentId(node.organizationAddress, testUrl);
                 const tx = await node.organization.connect(node.owner).addDocument(node.nodeOrganizationId, testUrl);
 
                 // Check event emission
@@ -132,7 +132,7 @@ describe("KnowledgeBase", function () {
             it("Should forget a document correctly", async function () {
                 const node = await loadFixture(deployGraphNode);
                 await node.organization.connect(node.owner).addDocument(node.nodeOrganizationId, testUrl);
-                const documentId = await Document.generateId(node.organizationAddress, testUrl);
+                const documentId = await IdGenerator.generateDocumentId(node.organizationAddress, testUrl);
                 const tx = await node.organization.connect(node.owner).forgetDocument(node.nodeOrganizationId, documentId);
 
                 // Check event emission
@@ -159,7 +159,7 @@ describe("KnowledgeBase", function () {
                 const node = await loadFixture(deployGraphNode);
                 await node.organization.connect(node.owner).addDocument(node.nodeOrganizationId, testUrl);
                 
-                const documentId = await Document.generateId(node.organizationAddress, testUrl);
+                const documentId = await IdGenerator.generateDocumentId(node.organizationAddress, testUrl);
                 const [nonOwner] = await ethers.getSigners();
 
                 await expect(
@@ -171,7 +171,7 @@ describe("KnowledgeBase", function () {
                 const node = await loadFixture(deployGraphNode);
                 await node.organization.connect(node.owner).addDocument(node.nodeOrganizationId, testUrl);
                 
-                const documentId = await Document.generateId(node.organizationAddress, testUrl);
+                const documentId = await IdGenerator.generateDocumentId(node.organizationAddress, testUrl);
                 await node.organization.connect(node.owner).forgetDocument(node.nodeOrganizationId, documentId);
 
                 // Should be able to forget again without error
@@ -225,7 +225,7 @@ describe("KnowledgeBase", function () {
                 
                 for (const id of documentIds) {
                     const document = await node.organization.getDocument(node.nodeOrganizationId, id);
-                    const computedId = await Document.generateId(node.organizationAddress, document.url);
+                    const computedId = await IdGenerator.generateDocumentId(node.organizationAddress, document.url);
                     expect(computedId).to.equal(id);
                 }
         });
@@ -236,7 +236,7 @@ describe("KnowledgeBase", function () {
             const descriptor = "is the CEO";
             it("Should add a new relation successfully", async function () {
                 const node = await loadFixture(deployGraphNode);
-                const edgeId = Edge.generateId(node.edgeTypeId, node.personaAddress, descriptor);
+                const edgeId = IdGenerator.generateEdgeId(node.edgeTypeId, node.personaAddress, descriptor);
                 await expect(node.organization.addEdge(
                     node.edgeTypeId,
                     node.personaAddress,
@@ -298,7 +298,7 @@ describe("KnowledgeBase", function () {
             const descriptor = "is the CEO";
             it("Should allow invited party to accept pending relation", async function () {
                 const node = await loadFixture(deployGraphNode);
-                const relationId = Edge.generateId(node.edgeTypeId, node.personaAddress, descriptor );
+                const relationId = IdGenerator.generateEdgeId(node.edgeTypeId, node.personaAddress, descriptor );
                 await node.organization.addEdge( node.edgeTypeId, node.personaAddress,descriptor);
                 await node.persona.answerEdge(node.organizationAddress, relationId, EdgeStatus.ACCEPTED); 
                 const relation = await node.organization.getEdgeById(relationId);
@@ -307,7 +307,7 @@ describe("KnowledgeBase", function () {
 
             it("Should allow owner to delete pending relation", async function () {
                 const node = await loadFixture(deployGraphNode);
-                const relationId = Edge.generateId( node.edgeTypeId, node.personaAddress, descriptor );
+                const relationId = IdGenerator.generateEdgeId( node.edgeTypeId, node.personaAddress, descriptor );
                 await node.organization.addEdge( node.edgeTypeId, node.personaAddress,descriptor);
     
                 await expect(node.organization.updateStatus( relationId, EdgeStatus.DELETED))
@@ -343,7 +343,7 @@ describe("KnowledgeBase", function () {
                     value: Property.booleanToBytes(true)
                 }
                 ];
-                const edgeId = Edge.generateId(node.edgeTypeId, node.personaAddress, 'edge1');
+                const edgeId = IdGenerator.generateEdgeId(node.edgeTypeId, node.personaAddress, 'edge1');
                 await node.organization.addEdge( node.edgeTypeId, node.personaAddress, 'edge1');
 
                 await node.organization.connect(node.owner).setProperties(edgeId, properties);
@@ -361,7 +361,7 @@ describe("KnowledgeBase", function () {
                 const node = await loadFixture(deployGraphNode);
                 const propertyNameId = Property.generateId(node.nodeTypeRegistryAddress,node.edgeTypeId, "prop_string");
                 const properties = [{ propertyTypeId: propertyNameId, value: Property.stringToBytes("Jhon") }];
-                const edgeId = Edge.generateId(node.edgeTypeId, node.personaAddress, "edge1");
+                const edgeId = IdGenerator.generateEdgeId(node.edgeTypeId, node.personaAddress, "edge1");
                 
                 // Add edge and accept it
                 await node.organization.addEdge(node.edgeTypeId, node.personaAddress, "edge1");
@@ -381,9 +381,9 @@ describe("KnowledgeBase", function () {
         describe("Edge Documents", function() {
             it("Should add a document correctly", async function () {
                 const node = await loadFixture(deployGraphNode);
-                const edgeId = Edge.generateId(node.edgeTypeId, node.personaAddress, "edge1");
+                const edgeId = IdGenerator.generateEdgeId(node.edgeTypeId, node.personaAddress, "edge1");
                 await node.organization.addEdge(node.edgeTypeId, node.personaAddress, "edge1");
-                const documentId = await Document.generateId(node.organizationAddress, testUrl);
+                const documentId = await IdGenerator.generateDocumentId(node.organizationAddress, testUrl);
                 const tx = await node.organization.connect(node.owner).addDocument(edgeId, testUrl);
 
                 // Check event emission

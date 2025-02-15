@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-import { Document, Property, PropertyType, NodeType } from "../../shared/src";
+const { Document, Property, PropertyType, IdGenerator } = require("../../shared/src");
 
 // Helper function to add multiple documents
 export async function addMultipleDocuments(nodeId: string, contract: any, contractAddress: string, owner: any) {  
@@ -11,7 +11,7 @@ export async function addMultipleDocuments(nodeId: string, contract: any, contra
 
   for (const url of urls) {
     await contract.connect(owner).addDocument(nodeId, url);
-    documentIds.push(await Document.generateId(contractAddress, url));
+    documentIds.push(await IdGenerator.generateDocumentId(contractAddress, url));
   }
 
   return documentIds;
