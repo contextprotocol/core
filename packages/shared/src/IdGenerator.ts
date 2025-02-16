@@ -15,6 +15,20 @@ export enum EdgeStatus {
   FINISHED = 5
 }
 
+export interface Document {
+  url: string;
+  isIndexed: boolean;
+}
+
+export interface Edge {
+  nodeId: string;
+  edgeType: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  status: EdgeStatus;
+  notes: string;
+}
+
 export class IdGenerator {
   
     static generateGraphNodeId(graphNodeAddress: string)

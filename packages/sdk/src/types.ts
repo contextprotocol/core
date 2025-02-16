@@ -39,24 +39,4 @@ export interface GraphNodeConfig {
     debug?: boolean;                  // Optional debug flag
 }
 
-export enum EdgeStatus {
-    PENDING,
-    DELETED,
-    ACCEPTED,
-    REJECTED,
-    FINISHED
-}
   
-export interface Document {
-    url: string;
-    isIndexed: boolean;
-}
-  
-export interface Edge {
-    nodeId: string;
-    edgeType: string;
-    startTimestamp: number;
-    endTimestamp: number;
-    status: EdgeStatus;
-    notes: string;
-}

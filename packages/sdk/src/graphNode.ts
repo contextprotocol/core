@@ -1,7 +1,6 @@
 import { ethers } from 'ethers';
-import { Logger, IdGenerator } from '../../shared/src';
 import { NodeTypeRegistry } from './nodeTypeRegistry';
-import { Property,  PropertyType, EntityType, EdgeStatus } from "../../shared/src";
+import { Logger, IdGenerator, Property,  PropertyType, EntityType, EdgeStatus } from "../../shared/src";
 import { NodeProperty, GraphNodeConfig, RPC_URLS, NetworkConnection } from './types';
 import GraphNodeABI 
     from '../../contracts/artifacts/contracts/GraphNode.sol/GraphNode.json';
@@ -176,6 +175,28 @@ class EdgeBuilder {
 
         // Accept the edge using the current node
         await this.parent.answerEdge(this.fromNodeAddress, edgeId, EdgeStatus.ACCEPTED);
+    }
+
+    async status(): Promise<EdgeStatus> {
+        if (!this.toNodeAddress) throw new Error("To node address is required");
+        if (this.descriptor === '') throw new Error("Descriptor is required");
+        
+        // Get the edge type ID from registry
+        this.parent.checkRegistry();
+        const registryAddress = this.parent.nodeTypeRegistry?.nodeTypeRegistryAddress as string;
+        const edgeTypeId = IdGenerator.generateNodeTypeId(registryAddress, this.edgeName);
+        const edgeType = await this.parent.nodeTypeRegistry?.getEntity(this.edgeName);
+        if (!edgeType || !edgeType.exists || edgeType.entityType !== EntityType.EDGE) {
+            throw new Error(`Edge type ${this.edgeName} not found in registry or is not an edge type`);
+        }
+
+        // Generate edge ID
+        const edgeId = IdGenerator.generateEdgeId(edgeType.entityId, this.toNodeAddress, this.descriptor);
+
+        // Get the edge status from entities mapping
+        this.parent.checkContract();
+        const entity = await this.parent.contract?.entities(edgeId);
+        return entity ? Number(entity.status) : EdgeStatus.INVALID;
     }
 }
 
